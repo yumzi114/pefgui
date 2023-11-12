@@ -234,24 +234,13 @@ impl MenuStatus {
                             
                             // self.run=!self.run
                         };
-                        // if ext.load(Ordering::Relaxed)&&self.exec.power{
-                        //     let mem = self.run_time.clone();
-                        //     // let time = mem.load(Ordering::Relaxed);
-                        //     // let ssss = mem.lock().to_string();
-                        //     ui.add_sized([0., 40.],egui::Label::new(RichText::new("탄 산").strong().size(50.0)));
-                        //     ui.add_sized([0., 40.],egui::Label::new(RichText::new(&mem.lock().unwrap().to_string()[..]).strong().size(50.0)));
-                        // }
-                        // let sping = egui::widgets::Spinner::new();
                         
-                        // let ss = egui::widgets::Spinner::new().size(60.0);
-                        // ui.add_sized([0., 40.],);
-                        // ui.add(egui::widgets::Spinner::new().size(60.0));
                         ui.add_space(20.0);
                         match self.exec.run.load(Ordering::Relaxed) {
                             true =>{
                                 ui.add_sized([0., 40.],egui::Label::new(RichText::new("STATUS : ").size(70.0)));
                                 ui.add_sized([0., 40.],egui::Label::new(RichText::new("MACHINE RUNING.. ").color(Color32::from_rgb(252, 32, 3)).size(70.0)));
-                                ui.add(egui::widgets::Spinner::new().size(60.0));
+                                ui.add(egui::widgets::Spinner::new().size(60.0).color(Color32::from_rgb(252, 32, 3)));
                             },
                             false=>{
                                 ui.add_sized([0., 40.],egui::Label::new(RichText::new("STATUS : ").size(70.0)));
