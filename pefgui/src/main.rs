@@ -58,7 +58,7 @@ fn main() {
     let options = eframe::NativeOptions {
         decorated: false,
         transparent: true,
-        resizable:false,
+        resizable:true,
         fullscreen:true,
         // min_window_size: Some(egui::vec2(850.0, 800.0)),
         // initial_window_size: Some(egui::vec2(850.0, 800.0)),
