@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex,atomic::{AtomicBool, Ordering}};
-use eframe::{egui::{self,InnerResponse, Ui, RichText}, epaint::{Color32, Vec2}};
+use eframe::{egui::{self,InnerResponse, Ui, RichText, Sense}, epaint::{Color32, Vec2}};
 use egui_extras::{StripBuilder,Size, TableBuilder, Column};
 mod drug;
 mod contents;
