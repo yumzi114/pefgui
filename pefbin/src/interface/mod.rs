@@ -1,10 +1,10 @@
-use eframe::egui::{Ui, self, InnerResponse};
+use eframe::{egui::{Ui, self, InnerResponse}, epaint::Color32};
 
 mod head_bar;
 mod bottom_bar;
 mod content;
 pub mod keypad;
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq,Debug,Clone, Copy)]
 pub enum  MenuList{
     SetVoltage,
     PulseFreq,
@@ -49,6 +49,17 @@ impl UserUi {
         })
     }
     pub fn content_view(&mut self,ui: &mut Ui,ctx: &egui::Context,)->InnerResponse<()>{
+        // let my_frame = egui::containers::Frame {
+        //     inner_margin: egui::style::Margin { left: 10., right: 10., top: 10., bottom: 10. },
+        //     outer_margin: egui::style::Margin { left: 10., right: 10., top: 10., bottom: 10. },
+        //     rounding: egui::Rounding { nw: 1.0, ne: 1.0, sw: 1.0, se: 1.0 },
+        //     shadow: eframe::epaint::Shadow { extrusion: 1.0, color: Color32::YELLOW },
+        //     fill: Color32::LIGHT_BLUE,
+        //     stroke: egui::Stroke::new(2.0, Color32::GOLD),
+        // };
+        // egui::CentralPanel::default().frame(my_frame).show(ctx, |ui| {
+        //     content::content_view(ui, ctx,self);
+        // })
         egui::panel::CentralPanel::default().show(ctx, |ui| {
             content::content_view(ui, ctx,self);
         })

@@ -8,4 +8,4 @@
 ## 구성
 ![swappy-20231219_134147](https://github.com/yumzi114/pefgui/assets/95202277/a9954979-fef0-4cc0-8fde-8a47673b121e)
 ## 스크린샷
-![swappy-20231219_134157](https://github.com/yumzi114/pefgui/assets/95202277/4b9fda4a-465f-4cbe-9fdc-80e29cd5b274)
+![swappy-20231219_153912](https://github.com/yumzi114/pefgui/assets/95202277/9f0c08e1-edbc-462e-9ec5-9d54684ffcb9)

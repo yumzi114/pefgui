@@ -5,40 +5,27 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi)->InnerRespo
     ui.vertical_centered(|ui|{
         ui.columns(2, |columns|{
             columns[0].vertical_centered(|ui|{
-                if ui.button("text1").clicked(){
-                    if uui.keypad.popon && uui.keypad.sellist==Some(MenuList::PulseFreq){
-                        uui.keypad.popon=false;
-                        uui.keypad.sellist=None;
-                    }
-                    else if uui.keypad.popon==false||uui.keypad.sellist!=Some(MenuList::PulseFreq){
-                        uui.keypad.popon=true;
-                        uui.keypad.sellist=Some(MenuList::PulseFreq)
-                    }
-                }
-                if ui.button("text2").clicked(){
-                    if uui.keypad.popon && uui.keypad.sellist==Some(MenuList::PulseTime){
-                        uui.keypad.popon=false;
-                        uui.keypad.sellist=None;
-                    }
-                    else if uui.keypad.popon==false||uui.keypad.sellist!=Some(MenuList::PulseTime){
-                        uui.keypad.popon=true;
-                        uui.keypad.sellist=Some(MenuList::PulseTime);
-                    }
-                }
-                if ui.button("text3").clicked(){
-                    let eq = 
-                    if uui.keypad.popon && uui.keypad.sellist==Some(MenuList::SetVoltage){
-                        uui.keypad.popon=false;
-                        uui.keypad.sellist=None;
-                    }
-                    else if uui.keypad.popon==false||uui.keypad.sellist!=Some(MenuList::SetVoltage){
-                        uui.keypad.popon=true;
-                        uui.keypad.sellist=Some(MenuList::SetVoltage);
-                    };
-                }
+                ui.add_space(100.);
                 ui.columns(2, |columns|{
-                    columns[0].vertical_centered(|ui|{
-                        ui.label(RichText::new("High Voltage").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                    columns[0].vertical_centered_justified(|ui|{
+                        if ui.label(RichText::new("High Voltage").strong().size(50.0).color(Color32::from_rgb(38, 150, 255))).clicked(){
+                            
+                            // if uui.keypad.popon && uui.keypad.sellist==Some(MenuList::SetVoltage){
+                            //     uui.keypad.popon=false;
+                            //     uui.keypad.sellist=None;
+                            // }
+                            // else if uui.keypad.popon==false||uui.keypad.sellist!=Some(MenuList::SetVoltage){
+                            //     uui.keypad.popon=true;
+                            //     uui.keypad.sellist=Some(MenuList::SetVoltage);
+                            // };
+                        };
+                        
+                        if ui.add(egui::Button::new(RichText::new("입력값").strong().size(50.0))).clicked() {
+                            click_voltage(uui,MenuList::SetVoltage);
+                        };
+                        // if ui.label(RichText::new("입력값").strong().size(50.0)).clicked(){
+
+                        
                         // let faded_color = ui.visuals().window_fill();
                         // let faded_color = |color: Color32| -> Color32 {
                         //     use egui::Rgba;
@@ -54,11 +41,27 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi)->InnerRespo
                         // ui.heading("My egui Application");
                         // ui.colored_label(Color32::WHITE, "text");
                     });
-                    columns[1].vertical_centered(|ui|{
-                        ui.label(RichText::new("High Voltage").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                    columns[1].vertical_centered_justified(|ui|{
+                        ui.label(RichText::new("Pulse Frequency").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        if ui.add(egui::Button::new(RichText::new("입력값").strong().size(50.0))).clicked() {
+                            click_voltage(uui,MenuList::PulseFreq);
+                        };
                     });
                 });
-                
+                ui.add_space(100.);
+                ui.label(RichText::new("Pulse Time").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                ui.columns(2, |columns|{
+                    columns[0].vertical_centered_justified(|ui|{
+                        ui.label(RichText::new("ON").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        ui.label(RichText::new("ON").strong().size(50.0).color(Color32::LIGHT_GREEN));
+                    });
+                    columns[1].vertical_centered_justified(|ui|{
+                        ui.label(RichText::new("OFF").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        if ui.add(egui::Button::new(RichText::new("입력값").strong().size(50.0))).clicked() {
+                            click_voltage(uui,MenuList::PulseTime);
+                        };
+                    });
+                });
             });
             columns[1].vertical_centered(|ui|{
                 // let (rect, _response) =ui.allocate_at_least(Vec2::new(150., 150.), Sense::hover());
@@ -93,7 +96,6 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi)->InnerRespo
                                 ui.add_space(10.0);
                                 let dd =egui::Image::new(egui::include_image!("../../files/pngegg.png")).rounding(360.0);
                                 ui.add_sized([120.0, 120.0], egui::ImageButton::new(dd));
-                                
                                 // ui.label(RichText::new("원 수").strong().size(50.0).color(Color32::LIGHT_GREEN));
                             });
                             row.col(|ui| {
@@ -134,3 +136,14 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi)->InnerRespo
 //     ..Default::default()
 // ui.label(job);
 // };
+
+fn click_voltage(uui:&mut UserUi, selmenu:MenuList){
+    if uui.keypad.popon && uui.keypad.sellist==Some(selmenu){
+        uui.keypad.popon=false;
+        uui.keypad.sellist=None;
+    }
+    else if uui.keypad.popon==false||uui.keypad.sellist!=Some(selmenu){
+        uui.keypad.popon=true;
+        uui.keypad.sellist=Some(selmenu);
+    };
+}
