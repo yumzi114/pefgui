@@ -28,12 +28,7 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>)->Inne
                         .paint_at(ui, temp_rect);
                 });
             });
-            
-            
-            
-            // ui.text_edit_singleline(&mut self.url);
         });
-        // ui.add_space(10.0);
         ui.horizontal_wrapped(|ui|{
             ui.add_space(86.0);
             ui.label(RichText::new("").strong().size(60.0));
