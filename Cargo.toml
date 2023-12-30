@@ -2,10 +2,9 @@
 members = [
     "pefbin","pefapi"
 ] 
-workspace.resolver = "2"
 default-members = ["pefbin"]
 [workspace.package]
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 authors = ["yum <yumzi114@gmail.com>"]
 readme = "README.md"

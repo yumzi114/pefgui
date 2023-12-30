@@ -1,9 +1,12 @@
+use std::sync::{Mutex, Arc};
+
 use eframe::{egui::{Ui, self, InnerResponse}, epaint::Color32};
 
 mod head_bar;
 mod bottom_bar;
 mod content;
 pub mod keypad;
+use super::{PulseInfo,VolatageInfo};
 #[derive(PartialEq,Debug,Clone, Copy)]
 pub enum  MenuList{
     SetVoltage,
@@ -28,13 +31,6 @@ impl ::std::default::Default for OpenMenu {
 pub struct UserUi{
     pub keypad: OpenMenu,
 }
-// impl ::std::default::Default for UserUi {
-//     fn default() -> Self { 
-//         Self { 
-//             // run:Arc::new(AtomicBool::new(false)),
-//             // run_time:Arc::new(Mutex::new(0)),
-//     } }
-// }
 impl ::std::default::Default for UserUi {
     fn default() -> Self { 
         Self{
@@ -48,25 +44,14 @@ impl UserUi {
             head_bar::top_logo_view(ui, ctx);
         })
     }
-    pub fn content_view(&mut self,ui: &mut Ui,ctx: &egui::Context,)->InnerResponse<()>{
-        // let my_frame = egui::containers::Frame {
-        //     inner_margin: egui::style::Margin { left: 10., right: 10., top: 10., bottom: 10. },
-        //     outer_margin: egui::style::Margin { left: 10., right: 10., top: 10., bottom: 10. },
-        //     rounding: egui::Rounding { nw: 1.0, ne: 1.0, sw: 1.0, se: 1.0 },
-        //     shadow: eframe::epaint::Shadow { extrusion: 1.0, color: Color32::YELLOW },
-        //     fill: Color32::LIGHT_BLUE,
-        //     stroke: egui::Stroke::new(2.0, Color32::GOLD),
-        // };
-        // egui::CentralPanel::default().frame(my_frame).show(ctx, |ui| {
-        //     content::content_view(ui, ctx,self);
-        // })
+    pub fn content_view(&mut self,ui: &mut Ui,ctx: &egui::Context,pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo)->InnerResponse<()>{
         egui::panel::CentralPanel::default().show(ctx, |ui| {
-            content::content_view(ui, ctx,self);
+            content::content_view(ui, ctx,self,pulse_info,vol_info);
         })
     }
-    pub fn bottom_view(&mut self,ui: &mut Ui,ctx: &egui::Context)->InnerResponse<()>{
+    pub fn bottom_view(&mut self,ui: &mut Ui,ctx: &egui::Context, mem:&Arc<Mutex<usize>>)->InnerResponse<()>{
         egui::containers::panel::TopBottomPanel::bottom("bottom_view").show_separator_line(false).show(ctx, |ui| {
-            bottom_bar::bottom_view(ui, ctx);
+            bottom_bar::bottom_view(ui, ctx,mem);
         })
     }
 }
