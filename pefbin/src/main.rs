@@ -8,9 +8,7 @@ mod interface;
 use interface::{UserUi,MenuList,keypad::keypad_view};
 
 fn main() -> Result<(), eframe::Error> {
-    // let  mut window_builder = winit::window::WindowBuilder::new()
-    // .with_title("Chrusing App")
-    // .with_fullscreen(Some(true));
+
     let windows = ViewportBuilder{
         title: Some(String::from("Chorusing App")),
         app_id: Some(String::from("Chorusing App")),
@@ -21,7 +19,6 @@ fn main() -> Result<(), eframe::Error> {
         ..Default::default()
     };
     let options = eframe::NativeOptions {
-        // viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
         viewport:windows,
         default_theme:Theme::Dark,
         ..Default::default()
@@ -32,7 +29,6 @@ fn main() -> Result<(), eframe::Error> {
         options,
         Box::new(|cc| {
             let mut app = PEFApp::new(cc);
-            // This gives us image support:
             egui_extras::install_image_loaders(&cc.egui_ctx);
             let mem = app.thread_time.clone();
             thread::spawn(move||{
@@ -50,7 +46,6 @@ fn main() -> Result<(), eframe::Error> {
         }),
     )
 }
-//장치에 관한 구조체정의 (Voltage, Pulse)
 #[derive(PartialEq, Serialize, Deserialize)]
 pub struct VolatageInfo{
     power:bool,
@@ -64,19 +59,7 @@ impl ::std::default::Default for VolatageInfo {
         }
     }
 }
-// impl ::std::default::Default for VolatageInfo {
-//     fn default() -> Self { 
-//         let savefile:Result<VolatageInfo, confy::ConfyError> = confy::load("pefapp", Some("vol"));
-//         let volinfo = match savefile {
-//             Ok(vol)=>vol,
-//             Err(e)=>{
-//                 confy::store("pefapp", "vol",VolatageInfo{power:false,value:0.0}).unwrap();
-//                 confy::load("pefapp", Some("vol")).unwrap()
-//             }
-//         };
-//         volinfo
-//     }
-// }
+
 #[derive(PartialEq, Serialize, Deserialize)]
 pub struct PulseInfo{
     power:bool,
@@ -93,21 +76,7 @@ impl ::std::default::Default for PulseInfo {
     }
 }
 
-// impl ::std::default::Default for PulseInfo {
-//     fn default() -> Self { 
-//         let savefile:Result<PulseInfo, confy::ConfyError> = confy::load("pefapp", "pulse");
-//         let pulseinfo = match savefile {
-//             Ok(pulse)=>pulse,
-//             Err(e)=>{
-//                 confy::store("pefapp", "pulse",PulseInfo{power:false,freq_value:0.0,time_value:0.0}).unwrap();
-//                 confy::load("pefapp", "pulse").unwrap()
-//             }
-//         };
-//         pulseinfo
-//     }
-// }
 
-// #[derive(Default)]
 struct PEFApp {
     mainui:UserUi,
     voltage:VolatageInfo,
@@ -119,7 +88,6 @@ impl PEFApp {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         setup_custom_fonts(&cc.egui_ctx);
         let voltage = confy::load("pefapp", "vol").unwrap_or_default();
-        // let temp2 = PulseInfo{power:false,freq_value:0.,time_value:0.};
         let PulseInfo = confy::load("pefapp", "pulse").unwrap_or_default();
         let thread_time = Arc::new(Mutex::new(1));
         Self{
