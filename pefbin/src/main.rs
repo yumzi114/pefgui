@@ -8,7 +8,7 @@ mod interface;
 use interface::{UserUi,MenuList,keypad::keypad_view};
 
 fn main() -> Result<(), eframe::Error> {
-
+    //윈도우 사이즈
     let windows = ViewportBuilder{
         title: Some(String::from("Chorusing App")),
         app_id: Some(String::from("Chorusing App")),
@@ -81,6 +81,7 @@ struct PEFApp {
     mainui:UserUi,
     voltage:VolatageInfo,
     PulseInfo:PulseInfo,
+    setvalue:String,
     thread_time:Arc<Mutex<usize>>
 }
 
@@ -94,10 +95,11 @@ impl PEFApp {
             mainui:UserUi::default(),
             voltage,
             PulseInfo,
+            setvalue:String::new(),
             thread_time
         }
     }
-    pub fn new_windows(&mut self, ctx: &egui::Context){
+    pub fn new_windows(&mut self, ctx: &egui::Context,){
         let title = match self.mainui.keypad.sellist {
             Some(MenuList::PulseFreq)=>"Set Pulse Freq Data",
             Some(MenuList::PulseTime)=>"Set Pulse Stop time",
@@ -117,7 +119,7 @@ impl PEFApp {
             .open(&mut self.mainui.keypad.popon)
             .vscroll(false);
             temp.show(ctx, |ui| {
-                keypad_view(ui, ctx);
+                keypad_view(ui, ctx, &mut self.PulseInfo, &mut self.voltage, &self.mainui.keypad.sellist, &mut self.setvalue);
             });
     }
     fn pop_window(&mut self, ui: &mut Ui,ctx: &egui::Context){

@@ -1,4 +1,4 @@
-use eframe::{egui::{Ui, self, InnerResponse, RichText, Sense, TextFormat}, epaint::{Vec2, Color32, text::{LayoutJob, TextWrapping}, FontId}, emath::Align};
+use eframe::{egui::{Ui, self, InnerResponse, RichText, Sense, TextFormat, PointerState}, epaint::{Vec2, Color32, text::{LayoutJob, TextWrapping}, FontId}, emath::Align};
 use egui_extras::{TableBuilder, Column};
 use super::{UserUi,MenuList,PulseInfo,VolatageInfo};
 
@@ -13,13 +13,13 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                         if ui.label(RichText::new("High Voltage").strong().size(50.0).color(Color32::from_rgb(38, 150, 255))).clicked(){
                         };
                         
-                        if ui.add(egui::Button::new(RichText::new("입력값").strong().size(80.0))).clicked() {
+                        if ui.add(egui::Button::new(RichText::new(vol_info.value.to_string()).strong().size(80.0))).clicked() {
                             click_voltage(uui,MenuList::SetVoltage);
                         };
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("Pulse Frequency").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
-                        if ui.add(egui::Button::new(RichText::new("입력값").strong().size(80.0))).clicked() {
+                        if ui.add(egui::Button::new(RichText::new(pulse_info.freq_value.to_string()).strong().size(80.0))).clicked() {
                             click_voltage(uui,MenuList::PulseFreq);
                         };
                     });
@@ -35,7 +35,7 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("OFF").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
-                        let open =ui.add(egui::Button::new(RichText::new("입력값").strong().size(80.0)));
+                        let open =ui.add(egui::Button::new(RichText::new(pulse_info.time_value.to_string()).strong().size(80.0)));
                         if open.clicked(){
                             let dd = open.interact_pointer_pos().unwrap();
                             ui.label(dd.x.to_string());
