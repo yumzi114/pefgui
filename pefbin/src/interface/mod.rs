@@ -1,6 +1,6 @@
 use std::sync::{Mutex, Arc};
 
-use eframe::{egui::{Ui, self, InnerResponse}, epaint::Color32};
+use eframe::{egui::{Ui, self, InnerResponse}, epaint::{Color32, Pos2}};
 
 mod head_bar;
 mod bottom_bar;
@@ -16,13 +16,15 @@ pub enum  MenuList{
 #[derive(PartialEq)]
 pub struct OpenMenu{
     pub popon:bool,
-    pub sellist:Option<MenuList>
+    pub sellist:Option<MenuList>,
+    pub uipost:Pos2,
 }
 impl ::std::default::Default for OpenMenu {
     fn default() -> Self { 
         Self{
             popon:false,
-            sellist:None
+            sellist:None,
+            uipost:Pos2 { x: 50., y: 50. }
         }
     }
 }

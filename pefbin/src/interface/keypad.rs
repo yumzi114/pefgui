@@ -76,7 +76,6 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                             pulse.freq_value=setvalue.parse::<f32>().unwrap_or(0.);
                         },
                         Some(MenuList::PulseTime)=>{
-                            let available_rect = ui.available_rect_before_wrap();
                             pulse.time_value=setvalue.parse::<f32>().unwrap_or(0.);
                         },
                         Some(MenuList::SetVoltage)=>{
@@ -89,15 +88,15 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                     match selmenu {
                         Some(MenuList::PulseFreq)=>{
                             pulse.freq_value=0.;
-                            setvalue.clear()
+                            setvalue.clear();
                         },
                         Some(MenuList::PulseTime)=>{
                             pulse.time_value=0.;
-                            setvalue.clear()
+                            setvalue.clear();
                         },
                         Some(MenuList::SetVoltage)=>{
                             volat.value=0.;
-                            setvalue.clear()
+                            setvalue.clear();
                         },
                         _=>{}
                     }

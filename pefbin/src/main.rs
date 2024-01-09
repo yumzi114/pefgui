@@ -114,7 +114,9 @@ impl PEFApp {
             .title_bar(true)
             .collapsible(false)
             .resizable(false)
-            .default_size(Vec2::new(450., 450.))
+            .default_size(Vec2::new(450., 450.)
+        )
+            .current_pos(self.mainui.keypad.uipost)
             .id("pad".into())
             .open(&mut self.mainui.keypad.popon)
             .vscroll(false);
