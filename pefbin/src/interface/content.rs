@@ -14,7 +14,7 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                         //     egui::TextStyle::Button,
                         //     egui::FontId::new(100.0, eframe::epaint::FontFamily::Proportional),
                         // );
-                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} Kv",vol_info.value.to_string())).strong().size(80.0)).sense(Sense::click()));
+                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} Kv",vol_info.value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
                             if b_response.clicked(){
                                 // ui.style_mut().spacing.button_padding = (0.0, 500.0).into();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
@@ -23,7 +23,7 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("Pulse Frequency").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
-                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} Hz",pulse_info.freq_value.to_string())).strong().size(80.0)).sense(Sense::click()));
+                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} Hz",pulse_info.freq_value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
                         if b_response.clicked(){
                             let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                             click_voltage(uui,MenuList::PulseFreq,pos);
@@ -39,7 +39,7 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                         // if pulse_info.power {
                         //     ui.label(RichText::new("ON").strong().size(50.0).color(Color32::LIGHT_GREEN));
                         // }
-                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} Ms",pulse_info.on_time_value.to_string())).strong().size(80.0)).sense(Sense::click()));
+                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} ms",pulse_info.on_time_value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
                         if b_response.clicked(){
                             let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                             click_voltage(uui,MenuList::PulseOnTime,pos);
@@ -47,7 +47,7 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("OFF").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
-                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} Ms",pulse_info.off_time_value.to_string())).strong().size(80.0)).sense(Sense::click()));
+                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} ms",pulse_info.off_time_value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
                         if b_response.clicked(){
                             let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                             click_voltage(uui,MenuList::PulseOffTime,pos);

@@ -30,16 +30,17 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
     }
     // ui.max_rect();
     let title = match selmenu {
-        Some(MenuList::SetVoltage)=>"High Voltage",
-        Some(MenuList::PulseFreq)=>"Pulse Frequency",
-        Some(MenuList::PulseOffTime)=>"Pulse OFF_Time",
-        Some(MenuList::PulseOnTime)=>"Pulse ON_Time",
+        Some(MenuList::SetVoltage)=>"High Voltage Set",
+        Some(MenuList::PulseFreq)=>"Pulse Frequency Set",
+        Some(MenuList::PulseOffTime)=>"Pulse OFF_Time Set",
+        Some(MenuList::PulseOnTime)=>"Pulse ON_Time Set",
         _=>""
     };
     ui.horizontal_wrapped(|ui|{
-        ui.add(egui::Label::new(RichText::new(format!("{}",title)).color(egui::Color32::WHITE).strong().size(60.0)));
+        ui.add(egui::Label::new(RichText::new(format!("{}",title)).color(egui::Color32::WHITE).strong().size(50.0)));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::LEFT), |ui| {
-            ui.add(egui::Label::new(RichText::new(format!("Value : {}  |",setvalue)).color(egui::Color32::WHITE).strong().size(40.0)));
+            ui.add_space(70.);
+            ui.add(egui::Label::new(RichText::new(format!("Value : {}",setvalue)).color(egui::Color32::WHITE).strong().size(40.0)));
         });
     });
     
@@ -93,19 +94,19 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                         match selmenu {
                                 Some(MenuList::PulseFreq)=>{
                                     pulse.freq_value=setvalue.parse::<f32>().unwrap_or(0.);
-                                    setvalue.clear();
+                                    // setvalue.clear();
                                 },
                                 Some(MenuList::PulseOffTime)=>{
                                     pulse.off_time_value=setvalue.parse::<f32>().unwrap_or(0.);
-                                    setvalue.clear();
+                                    // setvalue.clear();
                                 },
                                 Some(MenuList::PulseOnTime)=>{
                                     pulse.on_time_value=setvalue.parse::<f32>().unwrap_or(0.);
-                                    setvalue.clear();
+                                    // setvalue.clear();
                                 },
                                 Some(MenuList::SetVoltage)=>{
                                     volat.value=setvalue.parse::<f32>().unwrap_or(0.);
-                                    setvalue.clear();
+                                    // setvalue.clear();
                                 },
                                 _=>{}
                             }
@@ -113,19 +114,19 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                     if ui.add(egui::Button::new(RichText::new("Cancel").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
                                 Some(MenuList::PulseFreq)=>{
-                                    pulse.freq_value=0.;
+                                    // pulse.freq_value=0.;
                                     setvalue.clear();
                                 },
                                 Some(MenuList::PulseOffTime)=>{
-                                    pulse.off_time_value=0.;
+                                    // pulse.off_time_value=0.;
                                     setvalue.clear();
                                 },
                                 Some(MenuList::PulseOnTime)=>{
-                                    pulse.on_time_value=0.;
+                                    // pulse.on_time_value=0.;
                                     setvalue.clear();
                                 },
                                 Some(MenuList::SetVoltage)=>{
-                                    volat.value=0.;
+                                    // volat.value=0.;
                                     setvalue.clear();
                                 },
                                 _=>{}
