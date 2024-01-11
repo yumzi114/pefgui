@@ -11,7 +11,8 @@ use super::{PulseInfo,VolatageInfo};
 pub enum  MenuList{
     SetVoltage,
     PulseFreq,
-    PulseTime,
+    PulseOffTime,
+    PulseOnTime,
 }
 #[derive(PartialEq)]
 pub struct OpenMenu{
@@ -24,7 +25,7 @@ impl ::std::default::Default for OpenMenu {
         Self{
             popon:false,
             sellist:None,
-            uipost:Pos2 { x: 50., y: 50. }
+            uipost:Pos2 { x: 50., y: 50. },
         }
     }
 }
@@ -32,11 +33,13 @@ impl ::std::default::Default for OpenMenu {
 #[derive(PartialEq)]
 pub struct UserUi{
     pub keypad: OpenMenu,
+    set_value:String,
 }
 impl ::std::default::Default for UserUi {
     fn default() -> Self { 
         Self{
-            keypad:OpenMenu::default()
+            keypad:OpenMenu::default(),
+            set_value:String::new()
         }
     }
 }

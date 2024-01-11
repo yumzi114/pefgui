@@ -64,14 +64,16 @@ impl ::std::default::Default for VolatageInfo {
 pub struct PulseInfo{
     power:bool,
     freq_value:f32,
-    time_value:f32
+    off_time_value:f32,
+    on_time_value:f32,
 }
 impl ::std::default::Default for PulseInfo {
     fn default() -> Self { 
         Self{
             power: false,
             freq_value: 0.,
-            time_value: 0.,
+            off_time_value: 0.,
+            on_time_value: 0.,
         }
     }
 }
@@ -81,7 +83,6 @@ struct PEFApp {
     mainui:UserUi,
     voltage:VolatageInfo,
     PulseInfo:PulseInfo,
-    setvalue:String,
     thread_time:Arc<Mutex<usize>>
 }
 
@@ -95,38 +96,9 @@ impl PEFApp {
             mainui:UserUi::default(),
             voltage,
             PulseInfo,
-            setvalue:String::new(),
             thread_time
         }
     }
-    pub fn new_windows(&mut self, ctx: &egui::Context,){
-        let title = match self.mainui.keypad.sellist {
-            Some(MenuList::PulseFreq)=>"Set Pulse Freq Data",
-            Some(MenuList::PulseTime)=>"Set Pulse Stop time",
-            Some(MenuList::SetVoltage)=>"Set Voltage Data",
-            _=>"UNKNOW"
-        };
-        let temp = egui::Window::new(
-            RichText::new(title)
-            .color(egui::Color32::LIGHT_YELLOW)
-            .strong()
-            .size(30.0))
-            .title_bar(true)
-            .collapsible(false)
-            .resizable(false)
-            .default_size(Vec2::new(450., 450.)
-        )
-            .current_pos(self.mainui.keypad.uipost)
-            .id("pad".into())
-            .open(&mut self.mainui.keypad.popon)
-            .vscroll(false);
-            temp.show(ctx, |ui| {
-                keypad_view(ui, ctx, &mut self.PulseInfo, &mut self.voltage, &self.mainui.keypad.sellist, &mut self.setvalue);
-            });
-    }
-    fn pop_window(&mut self, ui: &mut Ui,ctx: &egui::Context){
-        self.new_windows(ctx);
-    }   
 }
 
 impl eframe::App for PEFApp {
@@ -134,7 +106,7 @@ impl eframe::App for PEFApp {
         ctx.request_repaint();
         
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.pop_window(ui, ctx);
+            // self.pop_window(ui, ctx);
             self.mainui.head_view(ui, ctx);
             self.mainui.content_view(ui, ctx,&mut self.PulseInfo,&mut self.voltage);
             self.mainui.bottom_view(ui, ctx,&self.thread_time);
@@ -149,9 +121,11 @@ fn setup_custom_fonts(ctx: &egui::Context) {
             "../files/Pilseung_Gothic.ttf"
         )),
     );
-
+    
     fonts
+    
         .families
+        
         .entry(egui::FontFamily::Proportional)
         .or_default()
         .insert(0, "my_font".to_owned());
