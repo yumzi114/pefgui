@@ -34,12 +34,14 @@ impl ::std::default::Default for OpenMenu {
 pub struct UserUi{
     pub keypad: OpenMenu,
     set_value:String,
+    status_str:String,
 }
 impl ::std::default::Default for UserUi {
     fn default() -> Self { 
         Self{
             keypad:OpenMenu::default(),
-            set_value:String::new()
+            set_value:String::new(),
+            status_str:String::new()
         }
     }
 }
@@ -56,7 +58,7 @@ impl UserUi {
     }
     pub fn bottom_view(&mut self,ui: &mut Ui,ctx: &egui::Context, mem:&Arc<Mutex<usize>>)->InnerResponse<()>{
         egui::containers::panel::TopBottomPanel::bottom("bottom_view").show_separator_line(false).show(ctx, |ui| {
-            bottom_bar::bottom_view(ui, ctx,mem);
+            bottom_bar::bottom_view(ui, ctx,mem, self);
         })
     }
 }

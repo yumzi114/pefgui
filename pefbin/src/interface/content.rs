@@ -16,6 +16,8 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                         // );
                         let b_response = ui.add(egui::Button::new(RichText::new(format!("{} Kv",vol_info.value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
                             if b_response.clicked(){
+                                uui.set_value.clear();
+                                uui.status_str="Voltage Value Stting".to_string();
                                 // ui.style_mut().spacing.button_padding = (0.0, 500.0).into();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                                 click_voltage(uui,MenuList::SetVoltage,pos);
@@ -23,8 +25,11 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("Pulse Frequency").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        // ui.style_mut().spacing.indent = 16.0;
                         let b_response = ui.add(egui::Button::new(RichText::new(format!("{} Hz",pulse_info.freq_value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
                         if b_response.clicked(){
+                            uui.set_value.clear();
+                            uui.status_str="Pulse Value Stting".to_string();
                             let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                             click_voltage(uui,MenuList::PulseFreq,pos);
                         }
@@ -41,6 +46,8 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                         // }
                         let b_response = ui.add(egui::Button::new(RichText::new(format!("{} ms",pulse_info.on_time_value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
                         if b_response.clicked(){
+                            uui.set_value.clear();
+                            uui.status_str="Pulse ON_TIME Stting".to_string();
                             let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                             click_voltage(uui,MenuList::PulseOnTime,pos);
                         }
@@ -49,6 +56,8 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                         ui.label(RichText::new("OFF").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
                         let b_response = ui.add(egui::Button::new(RichText::new(format!("{} ms",pulse_info.off_time_value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
                         if b_response.clicked(){
+                            uui.set_value.clear();
+                            uui.status_str="Pulse OFF_TIME Stting".to_string();
                             let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                             click_voltage(uui,MenuList::PulseOffTime,pos);
                         }
@@ -93,8 +102,7 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                     });
                 }else {
                     ui.add_space(70.);
-                    let mut test = String::new();
-                    keypad_view(ui, ctx, pulse_info, vol_info, &uui.keypad.sellist, &mut uui.set_value, &mut uui.keypad.popon);
+                    keypad_view(ui, ctx, pulse_info, vol_info, &uui.keypad.sellist, &mut uui.set_value, &mut uui.keypad.popon, &mut uui.status_str);
                 }
 
             });

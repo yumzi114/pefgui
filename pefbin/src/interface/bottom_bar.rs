@@ -1,8 +1,8 @@
 use std::{sync::{Mutex, Arc}, fmt::format};
 
 use eframe::{egui::{self, Ui, InnerResponse, RichText, Layout, Sense}, epaint::{Color32, Vec2}, emath::Align};
-
-pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>)->InnerResponse<()>{
+use super::{UserUi,MenuList};
+pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&mut UserUi)->InnerResponse<()>{
     ui.vertical_centered(|ui|{
         ui.horizontal_wrapped(|ui|{
             ui.label(RichText::new("").strong().size(60.0));
@@ -10,11 +10,18 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>)->Inne
                 columns[0].horizontal_centered(|ui|{
                     let dasd = *mem.lock().unwrap();
                     let time = ".".repeat(dasd);
+                    let mut status_string = String::new();
                     ui.add(egui::Label::new(RichText::new("      STATE : ").color(Color32::from_rgb(36, 101, 255)).strong().size(80.0)));
-                    ui.label(RichText::new(format!("TEST{}",time.as_str())).strong().size(80.0));
+                    if uui.keypad.popon {
+                        status_string=uui.status_str.clone();
+                    }
+                    else {
+                        status_string=format!("Waiting{}",time.as_str());
+                    }
+                    ui.label(RichText::new(status_string).strong().size(80.0));
                 });
                 columns[1].horizontal_centered(|ui|{
-                    ui.add_space(320.);
+                    ui.add_space(500.);
                     let (one_rect, _) =ui.allocate_at_least(Vec2::new(70., 70.), Sense::hover());
                     egui::Image::new(egui::include_image!("../../files/asdasd.png"))
                         .paint_at(ui, one_rect);

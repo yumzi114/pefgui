@@ -31,6 +31,7 @@ fn main() -> Result<(), eframe::Error> {
             let mut app = PEFApp::new(cc);
             egui_extras::install_image_loaders(&cc.egui_ctx);
             let mem = app.thread_time.clone();
+            //신규 스레드
             thread::spawn(move||{
                 loop{
                     thread::sleep(Duration::from_secs(1));
@@ -104,7 +105,6 @@ impl PEFApp {
 impl eframe::App for PEFApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint();
-        
         egui::CentralPanel::default().show(ctx, |ui| {
             // self.pop_window(ui, ctx);
             self.mainui.head_view(ui, ctx);
@@ -121,11 +121,8 @@ fn setup_custom_fonts(ctx: &egui::Context) {
             "../files/Pilseung_Gothic.ttf"
         )),
     );
-    
     fonts
-    
         .families
-        
         .entry(egui::FontFamily::Proportional)
         .or_default()
         .insert(0, "my_font".to_owned());
@@ -134,6 +131,5 @@ fn setup_custom_fonts(ctx: &egui::Context) {
         .entry(egui::FontFamily::Monospace)
         .or_default()
         .push("my_font".to_owned());
-
     ctx.set_fonts(fonts);
 }

@@ -2,32 +2,32 @@ use super::{PulseInfo,VolatageInfo};
 use super::MenuList;
 use eframe::egui::PointerState;
 use eframe::{egui::{Ui, self, InnerResponse, RichText}, epaint::Vec2};
-
-pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:&mut VolatageInfo, selmenu:&Option<MenuList>, setvalue:&mut String, open:&mut bool)->InnerResponse<()>{
+use super::{UserUi};
+pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:&mut VolatageInfo, selmenu:&Option<MenuList>, setvalue:&mut String, open:&mut bool, status_str:&mut String)->InnerResponse<()>{
     // let mut number = String::new();
-    match selmenu {
-        Some(MenuList::PulseFreq)=>{
-            if !(pulse.freq_value==0.){
-                // *setvalue=pulse.freq_value.to_string();
-            }
-        },
-        Some(MenuList::SetVoltage)=>{
-            if !(volat.value==0.){
-                // *setvalue=volat.value.to_string();
-            }
-        }
-        Some(MenuList::PulseOffTime)=>{
-            if !(pulse.off_time_value==0.){
-                // *setvalue=pulse.time_value.to_string();
-            }
-        },
-        Some(MenuList::PulseOnTime)=>{
-            if !(pulse.on_time_value==0.){
-                // *setvalue=pulse.time_value.to_string();
-            }
-        },
-        _=>{}
-    }
+    // match selmenu {
+    //     Some(MenuList::PulseFreq)=>{
+    //         if !(pulse.freq_value==0.){
+    //             // *setvalue=pulse.freq_value.to_string();
+    //         }
+    //     },
+    //     Some(MenuList::SetVoltage)=>{
+    //         if !(volat.value==0.){
+    //             // *setvalue=volat.value.to_string();
+    //         }
+    //     }
+    //     Some(MenuList::PulseOffTime)=>{
+    //         if !(pulse.off_time_value==0.){
+    //             // *setvalue=pulse.time_value.to_string();
+    //         }
+    //     },
+    //     Some(MenuList::PulseOnTime)=>{
+    //         if !(pulse.on_time_value==0.){
+    //             // *setvalue=pulse.time_value.to_string();
+    //         }
+    //     },
+    //     _=>{}
+    // }
     // ui.max_rect();
     let title = match selmenu {
         Some(MenuList::SetVoltage)=>"High Voltage Set",
@@ -93,19 +93,53 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                     if ui.add(egui::Button::new(RichText::new("Set").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
                                 Some(MenuList::PulseFreq)=>{
-                                    pulse.freq_value=setvalue.parse::<f32>().unwrap_or(0.);
+                                    if (setvalue.parse::<f32>().unwrap_or(0.) >1000.0){
+                                        *status_str="Limit value (0 ~ 1000 Hz)".to_string();
+                                        setvalue.clear();
+                                        // *status_str="Insert Value".to_string();
+                                    }else {
+                                        pulse.freq_value=setvalue.parse::<f32>().unwrap_or(0.);
+                                        *status_str=format!("Set Done Value : {} ", pulse.freq_value.to_string());
+                                        setvalue.clear();
+                                    }
+                                    // pulse.freq_value=setvalue.parse::<f32>().unwrap_or(0.);
                                     // setvalue.clear();
                                 },
                                 Some(MenuList::PulseOffTime)=>{
-                                    pulse.off_time_value=setvalue.parse::<f32>().unwrap_or(0.);
+                                    if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
+                                        *status_str="Limit value (0 ~ 100 ms)".to_string();
+                                        setvalue.clear();
+                                        // *status_str="Insert Value".to_string();
+                                    }else {
+                                        pulse.off_time_value=setvalue.parse::<f32>().unwrap_or(0.);
+                                        *status_str=format!("Set Done Value : {} ", pulse.off_time_value.to_string());
+                                        setvalue.clear();
+                                    }
                                     // setvalue.clear();
                                 },
                                 Some(MenuList::PulseOnTime)=>{
-                                    pulse.on_time_value=setvalue.parse::<f32>().unwrap_or(0.);
+                                    if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
+                                        *status_str="Limit value (0 ~ 100 ms)".to_string();
+                                        setvalue.clear();
+                                        // *status_str="Insert Value".to_string();
+                                    }else {
+                                        pulse.on_time_value=setvalue.parse::<f32>().unwrap_or(0.);
+                                        *status_str=format!("Set Done Value : {} ", pulse.on_time_value.to_string());
+                                        setvalue.clear();
+                                    }
                                     // setvalue.clear();
                                 },
                                 Some(MenuList::SetVoltage)=>{
-                                    volat.value=setvalue.parse::<f32>().unwrap_or(0.);
+                                    if (setvalue.parse::<f32>().unwrap_or(0.) >20.0){
+                                        *status_str="Limit value (0 ~ 20 Kv)".to_string();
+                                        setvalue.clear();
+                                        // *status_str="Insert Value".to_string();
+                                    }else {
+                                        volat.value=setvalue.parse::<f32>().unwrap_or(0.);
+                                        *status_str=format!("Set Done Value : {} ", volat.value.to_string());
+                                        setvalue.clear();
+                                    }
+                                    // volat.value=setvalue.parse::<f32>().unwrap_or(0.);
                                     // setvalue.clear();
                                 },
                                 _=>{}
