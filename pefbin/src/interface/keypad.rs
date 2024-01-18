@@ -1,34 +1,15 @@
+use std::sync::{Arc,Mutex};
+
 use super::{PulseInfo,VolatageInfo};
 use super::MenuList;
+use futures::stream::SplitSink;
+use pefapi::{LineCodec, AppChannel};
 use eframe::egui::PointerState;
 use eframe::{egui::{Ui, self, InnerResponse, RichText}, epaint::Vec2};
+use tokio_serial::SerialStream;
+use tokio_util::codec::Framed;
 use super::{UserUi};
-pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:&mut VolatageInfo, selmenu:&Option<MenuList>, setvalue:&mut String, open:&mut bool, status_str:&mut String)->InnerResponse<()>{
-    // let mut number = String::new();
-    // match selmenu {
-    //     Some(MenuList::PulseFreq)=>{
-    //         if !(pulse.freq_value==0.){
-    //             // *setvalue=pulse.freq_value.to_string();
-    //         }
-    //     },
-    //     Some(MenuList::SetVoltage)=>{
-    //         if !(volat.value==0.){
-    //             // *setvalue=volat.value.to_string();
-    //         }
-    //     }
-    //     Some(MenuList::PulseOffTime)=>{
-    //         if !(pulse.off_time_value==0.){
-    //             // *setvalue=pulse.time_value.to_string();
-    //         }
-    //     },
-    //     Some(MenuList::PulseOnTime)=>{
-    //         if !(pulse.on_time_value==0.){
-    //             // *setvalue=pulse.time_value.to_string();
-    //         }
-    //     },
-    //     _=>{}
-    // }
-    // ui.max_rect();
+pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:&mut VolatageInfo, selmenu:&mut Option<MenuList>, setvalue:&mut String, open:&mut bool, status_str:&mut String,app_chennel:&mut AppChannel)->InnerResponse<()>{
     let title = match selmenu {
         Some(MenuList::SetVoltage)=>"High Voltage Set",
         Some(MenuList::PulseFreq)=>"Pulse Frequency Set",
@@ -36,7 +17,8 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
         Some(MenuList::PulseOnTime)=>"Pulse ON_Time Set",
         _=>""
     };
-    ui.horizontal_wrapped(|ui|{
+    // ui.add_space(5.);
+    ui.vertical_centered_justified(|ui|{
         ui.add(egui::Label::new(RichText::new(format!("{}",title)).color(egui::Color32::WHITE).strong().size(50.0)));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::LEFT), |ui| {
             ui.add_space(70.);
@@ -57,6 +39,7 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                     setvalue.push('1');
                 }
                 if ui.add(egui::Button::new(RichText::new("Close").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
+                    *selmenu=None;
                     *open=false;
                 }
             });
@@ -92,126 +75,86 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                 ui.horizontal_wrapped(|ui|{
                     if ui.add(egui::Button::new(RichText::new("Set").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
-                                Some(MenuList::PulseFreq)=>{
-                                    if (setvalue.parse::<f32>().unwrap_or(0.) >1000.0){
-                                        *status_str="Limit value (0 ~ 1000 Hz)".to_string();
-                                        setvalue.clear();
-                                        // *status_str="Insert Value".to_string();
-                                    }else {
-                                        pulse.freq_value=setvalue.parse::<f32>().unwrap_or(0.);
-                                        *status_str=format!("Set Done Value : {} ", pulse.freq_value.to_string());
-                                        setvalue.clear();
-                                    }
-                                    // pulse.freq_value=setvalue.parse::<f32>().unwrap_or(0.);
-                                    // setvalue.clear();
-                                },
-                                Some(MenuList::PulseOffTime)=>{
-                                    if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
-                                        *status_str="Limit value (0 ~ 100 ms)".to_string();
-                                        setvalue.clear();
-                                        // *status_str="Insert Value".to_string();
-                                    }else {
-                                        pulse.off_time_value=setvalue.parse::<f32>().unwrap_or(0.);
-                                        *status_str=format!("Set Done Value : {} ", pulse.off_time_value.to_string());
-                                        setvalue.clear();
-                                    }
-                                    // setvalue.clear();
-                                },
-                                Some(MenuList::PulseOnTime)=>{
-                                    if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
-                                        *status_str="Limit value (0 ~ 100 ms)".to_string();
-                                        setvalue.clear();
-                                        // *status_str="Insert Value".to_string();
-                                    }else {
-                                        pulse.on_time_value=setvalue.parse::<f32>().unwrap_or(0.);
-                                        *status_str=format!("Set Done Value : {} ", pulse.on_time_value.to_string());
-                                        setvalue.clear();
-                                    }
-                                    // setvalue.clear();
-                                },
-                                Some(MenuList::SetVoltage)=>{
-                                    if (setvalue.parse::<f32>().unwrap_or(0.) >20.0){
-                                        *status_str="Limit value (0 ~ 20 Kv)".to_string();
-                                        setvalue.clear();
-                                        // *status_str="Insert Value".to_string();
-                                    }else {
-                                        volat.value=setvalue.parse::<f32>().unwrap_or(0.);
-                                        *status_str=format!("Set Done Value : {} ", volat.value.to_string());
-                                        setvalue.clear();
-                                    }
-                                    // volat.value=setvalue.parse::<f32>().unwrap_or(0.);
-                                    // setvalue.clear();
-                                },
-                                _=>{}
-                            }
+                            Some(MenuList::PulseFreq)=>{
+                                if (setvalue.parse::<f32>().unwrap_or(0.) >1000.0){
+                                    *status_str="Limit value (0 ~ 1000 Hz)".to_string();
+                                    setvalue.clear();
+                                    // *status_str="Insert Value".to_string();
+                                }else {
+                                    // pulse.freq_value=;
+                                    let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
+                                    pulse.freq_value=num.parse::<f32>().unwrap_or(0.);
+                                    pulse.save(app_chennel);
+                                    *status_str=format!("Set Done Value : {} ", pulse.freq_value.to_string());
+                                    setvalue.clear();
+                                }
+                            },
+                            Some(MenuList::PulseOffTime)=>{
+                                if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
+                                    *status_str="Limit value (0 ~ 100 ms)".to_string();
+                                    setvalue.clear();
+                                    // *status_str="Insert Value".to_string();
+                                }else {
+                                    let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
+                                    pulse.off_time_value=num.parse::<f32>().unwrap_or(0.);
+                                    pulse.save(app_chennel);
+                                    *status_str=format!("Set Done Value : {} ", pulse.off_time_value.to_string());
+                                    setvalue.clear();
+                                }
+                                // setvalue.clear();
+                            },
+                            Some(MenuList::PulseOnTime)=>{
+                                if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
+                                    *status_str="Limit value (0 ~ 100 ms)".to_string();
+                                    setvalue.clear();
+                                    // *status_str="Insert Value".to_string();b
+                                }else {
+                                    let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
+                                    pulse.on_time_value=num.parse::<f32>().unwrap_or(0.);
+                                    pulse.save(app_chennel);
+                                    *status_str=format!("Set Done Value : {} ", pulse.on_time_value.to_string());
+                                    setvalue.clear();
+                                }
+                                // setvalue.clear();
+                            },
+                            Some(MenuList::SetVoltage)=>{
+                                if (setvalue.parse::<f32>().unwrap_or(0.) >20.0){
+                                    *status_str="Limit value (0 ~ 20 Kv)".to_string();
+                                    setvalue.clear();
+                                }else {
+                                    let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
+                                    volat.value=num.parse::<f32>().unwrap_or(0.);
+                                    volat.save(app_chennel);
+                                    *status_str=format!("Set Done Value : {} ", volat.value.to_string());
+                                    setvalue.clear();
+                                }
+                            },
+                            _=>{}
+                        }
                     }
                     if ui.add(egui::Button::new(RichText::new("Cancel").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
-                                Some(MenuList::PulseFreq)=>{
-                                    // pulse.freq_value=0.;
-                                    setvalue.clear();
-                                },
-                                Some(MenuList::PulseOffTime)=>{
-                                    // pulse.off_time_value=0.;
-                                    setvalue.clear();
-                                },
-                                Some(MenuList::PulseOnTime)=>{
-                                    // pulse.on_time_value=0.;
-                                    setvalue.clear();
-                                },
-                                Some(MenuList::SetVoltage)=>{
-                                    // volat.value=0.;
-                                    setvalue.clear();
-                                },
-                                _=>{}
-                            }
+                            Some(MenuList::PulseFreq)=>{
+                                // pulse.freq_value=0.;
+                                setvalue.clear();
+                            },
+                            Some(MenuList::PulseOffTime)=>{
+                                // pulse.off_time_value=0.;
+                                setvalue.clear();
+                            },
+                            Some(MenuList::PulseOnTime)=>{
+                                // pulse.on_time_value=0.;
+                                setvalue.clear();
+                            },
+                            Some(MenuList::SetVoltage)=>{
+                                // volat.value=0.;
+                                setvalue.clear();
+                            },
+                            _=>{}
+                        }
                     }
-                    // ui.horizontal_centered(|ui|{
-                        
-                    // });
-                    // ui.horizontal(|ui|{
-                    //     ui.label("text");
-                    // });
                 });
             });
-            
-            // columns[3].vertical_centered_justified(|ui|{
-            //     if ui.add(egui::Button::new(RichText::new(setvalue.as_str()).color(egui::Color32::BLACK).strong().size(30.0)).min_size(Vec2::new(120., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
-            //     }
-            //     if ui.add(egui::Button::new(RichText::new("SET").color(egui::Color32::BLACK).strong().size(30.0)).min_size(Vec2::new(120., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
-            //         match selmenu {
-            //             Some(MenuList::PulseFreq)=>{
-            //                 pulse.freq_value=setvalue.parse::<f32>().unwrap_or(0.);
-            //             },
-            //             Some(MenuList::PulseOffTime)=>{
-            //                 pulse.time_value=setvalue.parse::<f32>().unwrap_or(0.);
-            //             },
-            //             Some(MenuList::SetVoltage)=>{
-            //                 volat.value=setvalue.parse::<f32>().unwrap_or(0.);
-            //             },
-            //             _=>{}
-            //         }
-            //     }
-            //     if ui.add(egui::Button::new(RichText::new("CANCLE").color(egui::Color32::BLACK).strong().size(30.0)).min_size(Vec2::new(120., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
-            //         match selmenu {
-            //             Some(MenuList::PulseFreq)=>{
-            //                 pulse.freq_value=0.;
-            //                 setvalue.clear();
-            //             },
-            //             Some(MenuList::PulseOffTime)=>{
-            //                 pulse.time_value=0.;
-            //                 setvalue.clear();
-            //             },
-            //             Some(MenuList::SetVoltage)=>{
-            //                 volat.value=0.;
-            //                 setvalue.clear();
-            //             },
-            //             _=>{}
-            //         }
-            //     }
-            //     if ui.add(egui::Button::new(RichText::new("").color(egui::Color32::BLACK).strong().size(30.0)).min_size(Vec2::new(120., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
-            //     }
-            // });
         });
         
         

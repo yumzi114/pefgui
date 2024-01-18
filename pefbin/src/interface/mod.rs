@@ -1,7 +1,10 @@
 use std::sync::{Mutex, Arc};
 
 use eframe::{egui::{Ui, self, InnerResponse}, epaint::{Color32, Pos2}};
-
+use futures::stream::SplitSink;
+use pefapi::{ LineCodec, AppChannel};
+use tokio_serial::SerialStream;
+use tokio_util::codec::Framed;
 mod head_bar;
 mod bottom_bar;
 mod content;
@@ -45,15 +48,17 @@ impl ::std::default::Default for UserUi {
         }
     }
 }
+
+//전체 UI에 대한 출력 메소드정의
 impl UserUi {
     pub fn head_view(&mut self,ui: &mut Ui,ctx: &egui::Context)->InnerResponse<()>{
         egui::containers::panel::TopBottomPanel::top("top_view").show_separator_line(false).show(ctx, |ui| {
             head_bar::top_logo_view(ui, ctx);
         })
     }
-    pub fn content_view(&mut self,ui: &mut Ui,ctx: &egui::Context,pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo)->InnerResponse<()>{
+    pub fn content_view(&mut self,ui: &mut Ui,ctx: &egui::Context,pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo, app_channel:&mut AppChannel)->InnerResponse<()>{
         egui::panel::CentralPanel::default().show(ctx, |ui| {
-            content::content_view(ui, ctx,self,pulse_info,vol_info);
+            content::content_view(ui, ctx,self,pulse_info,vol_info,app_channel);
         })
     }
     pub fn bottom_view(&mut self,ui: &mut Ui,ctx: &egui::Context, mem:&Arc<Mutex<usize>>)->InnerResponse<()>{

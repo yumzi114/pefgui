@@ -18,10 +18,23 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                     else {
                         status_string=format!("Waiting{}",time.as_str());
                     }
-                    ui.label(RichText::new(status_string).strong().size(80.0));
+                    match uui.keypad.sellist {
+                        Some(MenuList::PulseFreq)
+                        |Some(MenuList::PulseOffTime)
+                        |Some(MenuList::PulseOnTime)
+                        |Some(MenuList::SetVoltage)=>{
+                            ui.label(RichText::new(&status_string).strong().size(80.0));
+                            if &status_string[status_string.len()-7..]=="Setting"{
+                                ui.add(egui::Spinner::new().size(50.));
+                            }
+                            
+                        }
+                        _=>{ui.label(RichText::new(status_string).strong().size(80.0));}
+                    }
+                    
                 });
                 columns[1].horizontal_centered(|ui|{
-                    ui.add_space(500.);
+                    ui.add_space(550.);
                     let (one_rect, _) =ui.allocate_at_least(Vec2::new(70., 70.), Sense::hover());
                     egui::Image::new(egui::include_image!("../../files/asdasd.png"))
                         .paint_at(ui, one_rect);

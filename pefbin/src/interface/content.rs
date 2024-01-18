@@ -1,38 +1,47 @@
-use eframe::{egui::{Ui, self, InnerResponse, RichText, Sense, TextFormat, PointerState, Widget}, epaint::{Vec2, Color32, text::{LayoutJob, TextWrapping}, FontId, Pos2, vec2}, emath::Align, glow::TRUE};
+use std::sync::{Arc,Mutex};
+
+use eframe::{egui::{Ui, self, InnerResponse, RichText, Sense, TextFormat, PointerState, Widget}, epaint::{Vec2, Color32, text::{LayoutJob, TextWrapping}, FontId, Pos2, vec2}};
 use egui_extras::{TableBuilder, Column};
+use futures::stream::SplitSink;
+use pefapi::{LineCodec, AppChannel};
+use tokio_serial::SerialStream;
+use tokio_util::codec::Framed;
 use super::{UserUi,MenuList,PulseInfo,VolatageInfo};
 use crate::{keypad_view};
-pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo)->InnerResponse<()>{
+pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo,app_channel:&mut AppChannel)->InnerResponse<()>{
     ui.vertical_centered(|ui|{
         ui.columns(2, |columns|{
+            //좌측패널 컴퍼넌트
             columns[0].vertical_centered(|ui|{
                 ui.add_space(100.);
                 ui.columns(2, |columns|{
                     columns[0].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("High Voltage").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
-                        // ui.style_mut().text_styles.insert(
-                        //     egui::TextStyle::Button,
-                        //     egui::FontId::new(100.0, eframe::epaint::FontFamily::Proportional),
-                        // );
-                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} Kv",vol_info.value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
+                        ui.horizontal_wrapped(|ui|{
+                            ui.add_space(20.);
+                            let b_response = button_respone(ui, uui, &MenuList::SetVoltage, format!("{} Kv",vol_info.value.to_string()));
                             if b_response.clicked(){
                                 uui.set_value.clear();
-                                uui.status_str="Voltage Value Stting".to_string();
-                                // ui.style_mut().spacing.button_padding = (0.0, 500.0).into();
+                                uui.status_str="Voltage Value Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                                 click_voltage(uui,MenuList::SetVoltage,pos);
                             }
+                        });
+                        
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("Pulse Frequency").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
-                        // ui.style_mut().spacing.indent = 16.0;
-                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} Hz",pulse_info.freq_value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
-                        if b_response.clicked(){
-                            uui.set_value.clear();
-                            uui.status_str="Pulse Value Stting".to_string();
-                            let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
-                            click_voltage(uui,MenuList::PulseFreq,pos);
-                        }
+                        ui.horizontal_wrapped(|ui|{
+                            ui.add_space(20.);
+                            let b_response: egui::Response = button_respone(ui, uui, &MenuList::PulseFreq, format!("{} Hz",pulse_info.freq_value.to_string()));
+                            if b_response.clicked(){
+                                uui.set_value.clear();
+                                uui.status_str="Pulse Value Setting".to_string();
+                                let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
+                                click_voltage(uui,MenuList::PulseFreq,pos);
+                            }
+                        });
+                        
                     });
                 });
                 ui.add_space(100.);
@@ -40,33 +49,37 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                 ui.columns(2, |columns|{
                     columns[0].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("ON").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        ui.horizontal_wrapped(|ui|{
+                            ui.add_space(20.);
+                            let b_response = button_respone(ui, uui, &MenuList::PulseOnTime, format!("{} ms",pulse_info.on_time_value.to_string()));
+                            if b_response.clicked(){
+                                uui.set_value.clear();
+                                uui.status_str="Pulse ON_TIME Setting".to_string();
+                                let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
+                                click_voltage(uui,MenuList::PulseOnTime,pos);
+                            }
+                        });
                         
-                        // if pulse_info.power {
-                        //     ui.label(RichText::new("ON").strong().size(50.0).color(Color32::LIGHT_GREEN));
-                        // }
-                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} ms",pulse_info.on_time_value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
-                        if b_response.clicked(){
-                            uui.set_value.clear();
-                            uui.status_str="Pulse ON_TIME Stting".to_string();
-                            let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
-                            click_voltage(uui,MenuList::PulseOnTime,pos);
-                        }
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("OFF").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
-                        let b_response = ui.add(egui::Button::new(RichText::new(format!("{} ms",pulse_info.off_time_value.to_string())).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()));
-                        if b_response.clicked(){
-                            uui.set_value.clear();
-                            uui.status_str="Pulse OFF_TIME Stting".to_string();
-                            let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
-                            click_voltage(uui,MenuList::PulseOffTime,pos);
-                        }
+                        ui.horizontal_wrapped(|ui|{
+                            ui.add_space(20.);
+                            let b_response = button_respone(ui, uui, &MenuList::PulseOffTime, format!("{} ms",pulse_info.off_time_value.to_string()));
+                            if b_response.clicked(){
+                                uui.set_value.clear();
+                                uui.status_str="Pulse OFF_TIME Setting".to_string();
+                                let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
+                                click_voltage(uui,MenuList::PulseOffTime,pos);
+                            }
+                        });
                     });
                 });
             });
+            //우측패널 컴퍼넌트
             columns[1].vertical_centered(|ui|{
                 if !uui.keypad.popon{
-                    ui.add_space(70.);
+                    ui.add_space(95.);
                     ui.push_id(1, |ui| {
                         TableBuilder::new(ui)
                         .cell_layout(egui::Layout::top_down(egui::Align::Center))
@@ -88,30 +101,30 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                                 row.col(|ui| {
                                     ui.add_space(10.0);
                                     if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(vol_info.power))).clicked(){
-                                        vol_info.power=!vol_info.power
+                                        vol_info.power=!vol_info.power;
+                                        vol_info.save(app_channel);
                                     };
                                 });
                                 row.col(|ui| {
                                     ui.add_space(10.0);
                                     if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(pulse_info.power))).clicked(){
                                         pulse_info.power=!pulse_info.power;
+                                        pulse_info.save(app_channel);
                                     };
                                 });
                             });
                         })
                     });
                 }else {
-                    ui.add_space(70.);
-                    keypad_view(ui, ctx, pulse_info, vol_info, &uui.keypad.sellist, &mut uui.set_value, &mut uui.keypad.popon, &mut uui.status_str);
+                    ui.add_space(50.);
+                    keypad_view(ui, ctx, pulse_info, vol_info, &mut uui.keypad.sellist, &mut uui.set_value, &mut uui.keypad.popon, &mut uui.status_str,app_channel);
                 }
-
             });
-            
         })
     })
 }
 
-
+//메뉴리스트 중복처리
 fn click_voltage(uui:&mut UserUi, selmenu:MenuList, get_pos:Pos2){
     if uui.keypad.popon && uui.keypad.sellist==Some(selmenu){
         uui.keypad.popon=false;
@@ -123,6 +136,19 @@ fn click_voltage(uui:&mut UserUi, selmenu:MenuList, get_pos:Pos2){
         uui.keypad.sellist=Some(selmenu);
         uui.keypad.uipost=get_pos;
     };
+}
+
+//버튼 클릭색상처리
+fn button_respone(ui: &mut Ui, uui:&UserUi, check_sel:&MenuList,value_str:String)->egui::Response{
+    let b_response: egui::Response = 
+    if uui.keypad.sellist==Some(*check_sel){
+        // ui.add(egui::Button::new(RichText::new(value_str).color(Color32::from_rgb(133, 255, 115)).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()))
+        ui.add(egui::Button::new(RichText::new(value_str).strong().size(90.0)).min_size(Vec2{x:420.0,y:130.0}).sense(Sense::click()).fill(Color32::from_rgb(133, 255, 115)).rounding(egui::Rounding{nw:50.,ne:50.,sw:50.,se:50.,}))
+    }
+    else {
+        ui.add(egui::Button::new(RichText::new(value_str).strong().size(90.0)).min_size(Vec2{x:420.0,y:130.0}).rounding(egui::Rounding{nw:40.,ne:40.,sw:40.,se:40.,}).sense(Sense::click()))
+    };
+    b_response
 }
 
 fn check_on(on_off:bool)->eframe::egui::Image<'static>{
