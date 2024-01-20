@@ -134,22 +134,22 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                     }
                     if ui.add(egui::Button::new(RichText::new("Cancel").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
-                            Some(MenuList::PulseFreq)=>{
+                            Some(_)=>{
                                 // pulse.freq_value=0.;
                                 setvalue.clear();
                             },
-                            Some(MenuList::PulseOffTime)=>{
-                                // pulse.off_time_value=0.;
-                                setvalue.clear();
-                            },
-                            Some(MenuList::PulseOnTime)=>{
-                                // pulse.on_time_value=0.;
-                                setvalue.clear();
-                            },
-                            Some(MenuList::SetVoltage)=>{
-                                // volat.value=0.;
-                                setvalue.clear();
-                            },
+                            // Some(MenuList::PulseOffTime)=>{
+                            //     // pulse.off_time_value=0.;
+                            //     setvalue.clear();
+                            // },
+                            // Some(MenuList::PulseOnTime)=>{
+                            //     // pulse.on_time_value=0.;
+                            //     setvalue.clear();
+                            // },
+                            // Some(MenuList::SetVoltage)=>{
+                            //     // volat.value=0.;
+                            //     setvalue.clear();
+                            // },
                             _=>{}
                         }
                     }

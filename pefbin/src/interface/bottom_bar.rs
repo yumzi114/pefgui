@@ -27,7 +27,6 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                             if &status_string[status_string.len()-7..]=="Setting"{
                                 ui.add(egui::Spinner::new().size(50.));
                             }
-                            
                         }
                         _=>{ui.label(RichText::new(status_string).strong().size(80.0));}
                     }

@@ -6,7 +6,7 @@ use serde_derive::{Serialize, Deserialize};
 use eframe::{egui::{self, Sense, Ui, RichText, ViewportBuilder}, Theme, epaint::{Vec2, Color32}};
 mod interface;
 use interface::{UserUi,MenuList,keypad::keypad_view};
-use pefapi::{LineCodec,AppChannel};
+use pefapi::{LineCodec,AppChannel,ChageList};
 use tokio_serial::{SerialPortBuilderExt, SerialStream};
 use tokio_util::codec::{Decoder, Encoder, Framed};
 use futures::{stream::{StreamExt, SplitStream, SplitSink}, SinkExt, FutureExt};
@@ -89,9 +89,22 @@ impl ::std::default::Default for PulseInfo {
 impl PulseInfo {
     pub fn save(&self, app_chennel:&mut AppChannel){
         let file_PulseInfo:PulseInfo = confy::load("pefapp", "pulse").unwrap();
+        
         if file_PulseInfo!=*self{
-            confy::store("pefapp", "pulse", self).unwrap();
-            app_chennel.tx_send().unwrap();
+            let value = 
+            if self.power!=file_PulseInfo.power{Some(ChageList::Pulse_ON_OFF)}
+            else if self.freq_value!=file_PulseInfo.freq_value {Some(ChageList::PulseFreq)}
+            else if self.on_time_value!=file_PulseInfo.on_time_value{Some(ChageList::Pulse_ON_OFF_Time)}
+            else if self.off_time_value!=file_PulseInfo.off_time_value{Some(ChageList::Pulse_ON_OFF_Time)}
+            else {None};
+            
+            match value {Some(value)=>{
+                confy::store("pefapp", "pulse", self).unwrap();
+                app_chennel.tx_send(value).unwrap();
+            },
+                _=>{}
+            }
+            
         }
     }
 }
@@ -99,8 +112,18 @@ impl VolatageInfo {
     pub fn save(&self,app_chennel:&mut AppChannel){
         let file_VolatageInfo:VolatageInfo = confy::load("pefapp", "vol").unwrap();
         if file_VolatageInfo!=*self{
-            confy::store("pefapp", "vol", self).unwrap();
-            app_chennel.tx_send().unwrap();
+            let value = 
+            if self.power!=file_VolatageInfo.power {Some(ChageList::HighVol_ON_OFF)}
+            else if self.value!=file_VolatageInfo.value {Some(ChageList::HighVolValue)}
+            else {None};
+            match value {
+                Some(value)=>{
+                    confy::store("pefapp", "vol", self).unwrap();
+                    app_chennel.tx_send(value).unwrap();
+                },
+                _=>{}
+            }
+            
         }
     }
 }
