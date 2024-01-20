@@ -1,20 +1,21 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use core::time;
 use std::{thread, time::Duration, sync::{Arc, Mutex}};
 use serde_derive::{Serialize, Deserialize};
-use eframe::{egui::{self, Sense, Ui, RichText, ViewportBuilder}, Theme, epaint::{Vec2, Color32}};
+use eframe::{egui::{self, ViewportBuilder}, Theme};
 mod interface;
-use interface::{UserUi,MenuList,keypad::keypad_view};
-use pefapi::{LineCodec,AppChannel,ChageList};
-use tokio_serial::{SerialPortBuilderExt, SerialStream};
-use tokio_util::codec::{Decoder, Encoder, Framed};
-use futures::{stream::{StreamExt, SplitStream, SplitSink}, SinkExt, FutureExt};
+use crossbeam_channel::{unbounded,Receiver,Sender};
+use interface::{UserUi,keypad::keypad_view};
+use pefapi::{{ChageList},device::{PulseInfo,VolatageInfo}, LineCodec, RequestData};
+use tokio::runtime::Runtime;
+use tokio_serial::{StopBits, SerialPortBuilderExt, SerialPort};
+use tokio_util::codec::Decoder;
+use futures::{ StreamExt, SinkExt};
+
+
 
 #[cfg(unix)]
 const DEFAULT_TTY: &str = "/dev/ttyAMA3";
-// const DEFAULT_TTY: &str = "/dev/tty0";
-
 fn main() -> Result<(), eframe::Error> {
     //윈도우 사이즈
     let windows = ViewportBuilder{
@@ -38,7 +39,7 @@ fn main() -> Result<(), eframe::Error> {
             let mut app = PEFApp::new(cc);
             egui_extras::install_image_loaders(&cc.egui_ctx);
             let mem = app.thread_time.clone();
-            //신규 스레드
+            //UI상태변경용 스레드
             thread::spawn(move||{
                 loop{
                     thread::sleep(Duration::from_secs(1));
@@ -50,82 +51,32 @@ fn main() -> Result<(), eframe::Error> {
                     }
                 }
             });
+            //시리얼 통신을 위한 스레드
+            let recv = app.app_receiver.clone();
+            thread::spawn(move||{
+                let rt  = Runtime::new().unwrap();
+                rt.block_on(async {
+                    let mut port = tokio_serial::new(DEFAULT_TTY, 115_200).open_native_async().unwrap();
+                    #[cfg(unix)]
+                    port.set_stop_bits(StopBits::One).unwrap();
+                    port.set_exclusive(false)
+                        .expect("Unable to set serial port exclusive to false");
+                    let (mut tx, mut rx) =LineCodec.framed(port).split();
+                    loop {
+                        thread::sleep(Duration::from_millis(1));
+                        if let Ok(mut req_data)=recv.try_recv(){
+                            req_data.getter();
+                            req_data.checksum();
+                            let list = req_data.to_list();
+                            tx.send(list).await.unwrap();
+                        }
+                    }
+                })
+            });
+            
             Box::<PEFApp>::new(app)
         }),
     )
-}
-#[derive(PartialEq, Serialize, Deserialize)]
-pub struct VolatageInfo{
-    power:bool,
-    value:f32,
-}
-impl ::std::default::Default for VolatageInfo {
-    fn default() -> Self { 
-        Self{
-            power: false,
-            value: 0.,
-        }
-    }
-}
-
-#[derive(PartialEq, Serialize, Deserialize)]
-pub struct PulseInfo{
-    power:bool,
-    freq_value:f32,
-    off_time_value:f32,
-    on_time_value:f32,
-}
-impl ::std::default::Default for PulseInfo {
-    fn default() -> Self { 
-        Self{
-            power: false,
-            freq_value: 0.,
-            off_time_value: 0.,
-            on_time_value: 0.,
-        }
-    }
-}
-//각각 구조체별로 변경사항을 체크하고 변경사항이 있을 경우, 파일로 저장 및 데이터처리
-impl PulseInfo {
-    pub fn save(&self, app_chennel:&mut AppChannel){
-        let file_PulseInfo:PulseInfo = confy::load("pefapp", "pulse").unwrap();
-        
-        if file_PulseInfo!=*self{
-            let value = 
-            if self.power!=file_PulseInfo.power{Some(ChageList::Pulse_ON_OFF)}
-            else if self.freq_value!=file_PulseInfo.freq_value {Some(ChageList::PulseFreq)}
-            else if self.on_time_value!=file_PulseInfo.on_time_value{Some(ChageList::Pulse_ON_OFF_Time)}
-            else if self.off_time_value!=file_PulseInfo.off_time_value{Some(ChageList::Pulse_ON_OFF_Time)}
-            else {None};
-            
-            match value {Some(value)=>{
-                confy::store("pefapp", "pulse", self).unwrap();
-                app_chennel.tx_send(value).unwrap();
-            },
-                _=>{}
-            }
-            
-        }
-    }
-}
-impl VolatageInfo {
-    pub fn save(&self,app_chennel:&mut AppChannel){
-        let file_VolatageInfo:VolatageInfo = confy::load("pefapp", "vol").unwrap();
-        if file_VolatageInfo!=*self{
-            let value = 
-            if self.power!=file_VolatageInfo.power {Some(ChageList::HighVol_ON_OFF)}
-            else if self.value!=file_VolatageInfo.value {Some(ChageList::HighVolValue)}
-            else {None};
-            match value {
-                Some(value)=>{
-                    confy::store("pefapp", "vol", self).unwrap();
-                    app_chennel.tx_send(value).unwrap();
-                },
-                _=>{}
-            }
-            
-        }
-    }
 }
 
 
@@ -134,11 +85,10 @@ struct PEFApp {
     voltage:VolatageInfo,
     PulseInfo:PulseInfo,
     thread_time:Arc<Mutex<usize>>,
-    app_channel:AppChannel
-    // app_channel:Arc<Mutex<SplitSink<Framed<SerialStream,LineCodec>,String>>>,
-    // app_channel:AppChannel,
-    // tx:SplitSink<Framed<SerialStream,LineCodec>,String>,
-    // rx:SplitStream<Framed<SerialStream, LineCodec>> 
+    request:RequestData,
+    //스레드로 데이터전송을위한 앱채널
+    app_sender:Sender<RequestData>,
+    app_receiver:Receiver<RequestData>,
 }
 
 impl PEFApp {
@@ -150,26 +100,16 @@ impl PEFApp {
         let voltage = confy::load("pefapp", "vol").unwrap_or_default();
         let PulseInfo = confy::load("pefapp", "pulse").unwrap_or_default();
         let thread_time = Arc::new(Mutex::new(1));
-        let app_channel=AppChannel::new();
-        // let (mut tx, mut rx)= stream.frame.split();
-        // let app_channel = Arc::new(Mutex::new(tx));
-        // //시리얼 Rx, Tx를 앱에 전달
-        // let mut port = tokio_serial::new(DEFAULT_TTY, 115_200).open_native_async().unwrap();
-        // let mut request = pefapi::RequestData::default();
-        // #[cfg(unix)]
-        // port.set_exclusive(false)
-        //     .expect("Unable to set serial port exclusive to false");
-        // let (tx, rx) =LineCodec.framed(port).split();
-        // let app_channel = AppChannel::new();
-        // let (mut tx, mut rx)=app_channel.frame.split();
+        let request = RequestData::default();
+        let (tx, rx) = unbounded();
         Self{
             mainui:UserUi::default(),
             voltage,
             PulseInfo,
             thread_time,
-            app_channel
-            // tx,
-            // rx
+            request,
+            app_sender:tx,
+            app_receiver:rx
         }
     }
 }
@@ -180,7 +120,7 @@ impl eframe::App for PEFApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             // 인터페이스의 정의된 메서드실행 구문
             self.mainui.head_view(ui, ctx);
-            self.mainui.content_view(ui, ctx,&mut self.PulseInfo,&mut self.voltage,&mut self.app_channel);
+            self.mainui.content_view(ui, ctx,&mut self.PulseInfo,&mut self.voltage,&mut self.request,&mut self.app_sender);
             self.mainui.bottom_view(ui, ctx,&self.thread_time);
         });
     }

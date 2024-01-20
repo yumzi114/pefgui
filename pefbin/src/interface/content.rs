@@ -1,14 +1,15 @@
 use std::sync::{Arc,Mutex};
 
+use crossbeam_channel::Sender;
 use eframe::{egui::{Ui, self, InnerResponse, RichText, Sense, TextFormat, PointerState, Widget}, epaint::{Vec2, Color32, text::{LayoutJob, TextWrapping}, FontId, Pos2, vec2}};
 use egui_extras::{TableBuilder, Column};
 use futures::stream::SplitSink;
-use pefapi::{LineCodec, AppChannel};
+use pefapi::{LineCodec, RequestData};
 use tokio_serial::SerialStream;
 use tokio_util::codec::Framed;
 use super::{UserUi,MenuList,PulseInfo,VolatageInfo};
 use crate::{keypad_view};
-pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo,app_channel:&mut AppChannel)->InnerResponse<()>{
+pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo,request:&mut RequestData, sender:&mut Sender<RequestData>)->InnerResponse<()>{
     ui.vertical_centered(|ui|{
         ui.columns(2, |columns|{
             //좌측패널 컴퍼넌트
@@ -102,14 +103,14 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                                     ui.add_space(10.0);
                                     if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(vol_info.power))).clicked(){
                                         vol_info.power=!vol_info.power;
-                                        vol_info.save(app_channel);
+                                        vol_info.save(request,sender);
                                     };
                                 });
                                 row.col(|ui| {
                                     ui.add_space(10.0);
                                     if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(pulse_info.power))).clicked(){
                                         pulse_info.power=!pulse_info.power;
-                                        pulse_info.save(app_channel);
+                                        pulse_info.save(request,sender);
                                     };
                                 });
                             });
@@ -117,7 +118,7 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                     });
                 }else {
                     ui.add_space(50.);
-                    keypad_view(ui, ctx, pulse_info, vol_info, &mut uui.keypad.sellist, &mut uui.set_value, &mut uui.keypad.popon, &mut uui.status_str,app_channel);
+                    keypad_view(ui, ctx, pulse_info, vol_info, &mut uui.keypad.sellist, &mut uui.set_value, &mut uui.keypad.popon, &mut uui.status_str,request,sender);
                 }
             });
         })

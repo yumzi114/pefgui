@@ -1,15 +1,13 @@
-use std::sync::{Arc,Mutex};
 
-use super::{PulseInfo,VolatageInfo};
 use super::MenuList;
-use futures::stream::SplitSink;
-use pefapi::{LineCodec, AppChannel};
+use crossbeam_channel::Sender;
+use pefapi::{RequestData,device::{PulseInfo,VolatageInfo}};
 use eframe::egui::PointerState;
 use eframe::{egui::{Ui, self, InnerResponse, RichText}, epaint::Vec2};
 use tokio_serial::SerialStream;
 use tokio_util::codec::Framed;
 use super::{UserUi};
-pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:&mut VolatageInfo, selmenu:&mut Option<MenuList>, setvalue:&mut String, open:&mut bool, status_str:&mut String,app_chennel:&mut AppChannel)->InnerResponse<()>{
+pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:&mut VolatageInfo, selmenu:&mut Option<MenuList>, setvalue:&mut String, open:&mut bool, status_str:&mut String,request:&mut RequestData,sender:&mut Sender<RequestData>)->InnerResponse<()>{
     let title = match selmenu {
         Some(MenuList::SetVoltage)=>"High Voltage Set",
         Some(MenuList::PulseFreq)=>"Pulse Frequency Set",
@@ -79,12 +77,10 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >1000.0){
                                     *status_str="Limit value (0 ~ 1000 Hz)".to_string();
                                     setvalue.clear();
-                                    // *status_str="Insert Value".to_string();
                                 }else {
-                                    // pulse.freq_value=;
                                     let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
                                     pulse.freq_value=num.parse::<f32>().unwrap_or(0.);
-                                    pulse.save(app_chennel);
+                                    pulse.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", pulse.freq_value.to_string());
                                     setvalue.clear();
                                 }
@@ -93,29 +89,25 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
                                     *status_str="Limit value (0 ~ 100 ms)".to_string();
                                     setvalue.clear();
-                                    // *status_str="Insert Value".to_string();
                                 }else {
                                     let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
                                     pulse.off_time_value=num.parse::<f32>().unwrap_or(0.);
-                                    pulse.save(app_chennel);
+                                    pulse.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", pulse.off_time_value.to_string());
                                     setvalue.clear();
                                 }
-                                // setvalue.clear();
                             },
                             Some(MenuList::PulseOnTime)=>{
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
                                     *status_str="Limit value (0 ~ 100 ms)".to_string();
                                     setvalue.clear();
-                                    // *status_str="Insert Value".to_string();b
                                 }else {
                                     let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
                                     pulse.on_time_value=num.parse::<f32>().unwrap_or(0.);
-                                    pulse.save(app_chennel);
+                                    pulse.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", pulse.on_time_value.to_string());
                                     setvalue.clear();
                                 }
-                                // setvalue.clear();
                             },
                             Some(MenuList::SetVoltage)=>{
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >20.0){
@@ -124,7 +116,7 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                                 }else {
                                     let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
                                     volat.value=num.parse::<f32>().unwrap_or(0.);
-                                    volat.save(app_chennel);
+                                    volat.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", volat.value.to_string());
                                     setvalue.clear();
                                 }
@@ -135,21 +127,8 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                     if ui.add(egui::Button::new(RichText::new("Cancel").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
                             Some(_)=>{
-                                // pulse.freq_value=0.;
                                 setvalue.clear();
                             },
-                            // Some(MenuList::PulseOffTime)=>{
-                            //     // pulse.off_time_value=0.;
-                            //     setvalue.clear();
-                            // },
-                            // Some(MenuList::PulseOnTime)=>{
-                            //     // pulse.on_time_value=0.;
-                            //     setvalue.clear();
-                            // },
-                            // Some(MenuList::SetVoltage)=>{
-                            //     // volat.value=0.;
-                            //     setvalue.clear();
-                            // },
                             _=>{}
                         }
                     }

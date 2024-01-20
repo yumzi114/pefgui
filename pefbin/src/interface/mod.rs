@@ -1,10 +1,8 @@
 use std::sync::{Mutex, Arc};
 
-use eframe::{egui::{Ui, self, InnerResponse}, epaint::{Color32, Pos2}};
-use futures::stream::SplitSink;
-use pefapi::{ LineCodec, AppChannel};
-use tokio_serial::SerialStream;
-use tokio_util::codec::Framed;
+use crossbeam_channel::Sender;
+use eframe::{egui::{Ui, self, InnerResponse}, epaint::{Pos2}};
+use pefapi::RequestData;
 mod head_bar;
 mod bottom_bar;
 mod content;
@@ -56,9 +54,9 @@ impl UserUi {
             head_bar::top_logo_view(ui, ctx);
         })
     }
-    pub fn content_view(&mut self,ui: &mut Ui,ctx: &egui::Context,pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo, app_channel:&mut AppChannel)->InnerResponse<()>{
+    pub fn content_view(&mut self,ui: &mut Ui,ctx: &egui::Context,pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo, request:&mut RequestData,sender:&mut Sender<RequestData>)->InnerResponse<()>{
         egui::panel::CentralPanel::default().show(ctx, |ui| {
-            content::content_view(ui, ctx,self,pulse_info,vol_info,app_channel);
+            content::content_view(ui, ctx,self,pulse_info,vol_info,request,sender);
         })
     }
     pub fn bottom_view(&mut self,ui: &mut Ui,ctx: &egui::Context, mem:&Arc<Mutex<usize>>)->InnerResponse<()>{

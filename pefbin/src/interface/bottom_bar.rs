@@ -1,6 +1,6 @@
-use std::{sync::{Mutex, Arc}, fmt::format};
+use std::{sync::{Mutex, Arc}};
 
-use eframe::{egui::{self, Ui, InnerResponse, RichText, Layout, Sense}, epaint::{Color32, Vec2}, emath::Align};
+use eframe::{egui::{self, Ui, InnerResponse, RichText, Sense}, epaint::{Color32, Vec2}};
 use super::{UserUi,MenuList};
 pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&mut UserUi)->InnerResponse<()>{
     ui.vertical_centered(|ui|{

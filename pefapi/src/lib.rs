@@ -8,7 +8,8 @@ use std::{io, str,u8};
 use serde::{Serialize, Deserialize};
 use serde_hex::{SerHex,StrictPfx,CompactPfx};
 use defaults::Defaults;
-
+pub mod device;
+use device::{PulseInfo,VolatageInfo};
 
 #[cfg(unix)]
 const DEFAULT_TTY: &str = "/dev/ttyAMA3";
@@ -20,47 +21,6 @@ pub enum ChageList{
     Pulse_ON_OFF_Time,
     HighVol_ON_OFF,
     Pulse_ON_OFF
-}
-
-pub struct AppChannel;
-
-
-impl AppChannel {
-    pub fn new()->Self{
-        Self{
-        }
-    }
-    #[tokio::main]
-    pub async fn tx_send(&mut self, change_value:ChageList)->tokio_serial::Result<()>{
-        //변경된 사용자 조작값을 전달하고 매치처리
-        let c_value:u16 = match change_value {
-            ChageList::HighVolValue=>0b0000_0010_0000_0000,
-            ChageList::PulseFreq=>0b1000_0000_0000_0000,
-            ChageList::Pulse_ON_OFF_Time=>0b1000_0000_0000_0000,
-            ChageList::Pulse_ON_OFF=>0b0001_0000_0000_0000,
-            ChageList::HighVol_ON_OFF=>0b0000_0100_0000_0000,
-        };
-        //리퀘스트 구조체생성
-        let mut r_data_test = RequestData::default();
-        //변경된 비트값전달하여 리퀘스트값 변경
-        r_data_test.into_change_value(c_value);
-        //처리할 데이터를 리스트로 받아옴
-        let list = r_data_test.to_list();
-        // sender.lock().unwrap().send("item".to_string()).await.unwrap();
-        //비동기 통신을 위해 스레드실행
-        let join_handle = tokio::spawn(async move {
-                let mut port = tokio_serial::new(DEFAULT_TTY, 115_200).open_native_async().unwrap();
-                #[cfg(unix)]
-                port.set_stop_bits(StopBits::One).unwrap();
-                port.set_exclusive(false)
-                    .expect("Unable to set serial port exclusive to false");
-                let (mut tx, mut rx) =LineCodec.framed(port).split();
-                tx.send(list).await.unwrap();
-        });
-        //스레드의 종료대기 종료후 Result Ok를 보냄
-        join_handle.await.unwrap();
-        Ok(())
-    }
 }
 
 
@@ -131,7 +91,7 @@ impl Encoder<Vec<RequestDataList>> for LineCodec {
 }
 
 //리스트타입을 합치기위한 열거형
-enum RequestDataList{
+pub enum RequestDataList{
     
     START(u8),
     LENGHTH(u8),
@@ -153,7 +113,7 @@ enum RequestDataList{
     CHECKSUM(u8),
     END(u8),
 }
-#[derive(Debug,PartialEq,Eq,Serialize,Deserialize,Defaults)]
+#[derive(Debug,PartialEq,Eq,Serialize,Deserialize,Defaults,Clone,Copy)]
 pub struct RequestData{
     //175 0xAF고정
     #[serde(with = "SerHex::<StrictPfx>")]
@@ -218,11 +178,31 @@ pub struct RequestData{
 }
 impl RequestData {
     //변경된 값을 구조체에서 변경
-    fn into_change_value(&mut self, change_value:u16){
-        self.change_value=change_value;
+    pub fn into_change_value(&mut self, change_value:ChageList){
+        let c_value:u16 = match change_value {
+            ChageList::HighVolValue=>0b0000_0010_0000_0000,
+            ChageList::PulseFreq=>0b1000_0000_0000_0000,
+            ChageList::Pulse_ON_OFF_Time=>0b1000_0000_0000_0000,
+            ChageList::Pulse_ON_OFF=>0b0001_0000_0000_0000,
+            ChageList::HighVol_ON_OFF=>0b0000_0100_0000_0000,
+        };
+        self.change_value=c_value;
+        self.checksum();
+    }
+    pub fn getter(&mut self){
+        let pulse_info:PulseInfo = confy::load("pefapp", "pulse").unwrap();
+        let vol_info:VolatageInfo = confy::load("pefapp", "vol").unwrap();
+        //pulse set
+        self.pulse_onoff=if pulse_info.power {1}else{0};
+        self.set_pulse_freq=pulse_info.freq_value as u16;
+        self.set_pulse_time[0]=pulse_info.on_time_value as u16;
+        self.set_pulse_time[1]=pulse_info.off_time_value as u16;
+        //voltage set
+        self.hv_onoff=if vol_info.power{1}else{0};
+        self.set_vol=vol_info.value as u16;
     }
     //리스트로 반환
-    fn to_list(&self)->Vec<RequestDataList>
+    pub fn to_list(&self)->Vec<RequestDataList>
     {
         let mut list=vec![
             RequestDataList::START(self.start),
@@ -248,7 +228,7 @@ impl RequestData {
         list
     }
     //구조체내에 데이터를 계산하고 체크섬변경
-    fn checksum(&mut self){
+    pub fn checksum(&mut self){
         let mut list = self.to_list();
         let mut sumdata:u64=0;
         for i in &list {
@@ -289,8 +269,8 @@ impl RequestData {
             }
         }
         let hex_str = format!("{:#x}",sumdata);
-        let test =hex::decode(hex_str.as_str()).unwrap();
-        self.chechksum=test[test.len()];
+        let test =hex::decode(&hex_str[hex_str.len()-2..]).unwrap();
+        self.chechksum=test[0];
     }
 }
 
