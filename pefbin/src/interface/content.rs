@@ -4,12 +4,13 @@ use crossbeam_channel::Sender;
 use eframe::{egui::{Ui, self, InnerResponse, RichText, Sense, TextFormat, PointerState, Widget}, epaint::{Vec2, Color32, text::{LayoutJob, TextWrapping}, FontId, Pos2, vec2}};
 use egui_extras::{TableBuilder, Column};
 use futures::stream::SplitSink;
-use pefapi::{LineCodec, RequestData};
+use pefapi::{LineCodec, RequestData, RequestDataList};
 use tokio_serial::SerialStream;
 use tokio_util::codec::Framed;
 use super::{UserUi,MenuList,PulseInfo,VolatageInfo};
 use crate::{keypad_view};
-pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo,request:&mut RequestData, sender:&mut Sender<RequestData>)->InnerResponse<()>{
+pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo,request:&mut RequestData, sender:&mut Sender<RequestData>,response:&Arc<Mutex<Vec<RequestDataList>>>)->InnerResponse<()>{
+    let mem = response.clone();
     ui.vertical_centered(|ui|{
         ui.columns(2, |columns|{
             //좌측패널 컴퍼넌트
@@ -29,6 +30,8 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                             }
                         });
                         
+                        let value = format!("Device : {}",mem.lock().unwrap()[7]);
+                        ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("Pulse Frequency").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
@@ -42,10 +45,11 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                                 click_voltage(uui,MenuList::PulseFreq,pos);
                             }
                         });
-                        
+                        let value = format!("Device : {}",mem.lock().unwrap()[11]);
+                        ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                 });
-                ui.add_space(100.);
+                ui.add_space(60.);
                 ui.label(RichText::new("Pulse Time").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
                 ui.columns(2, |columns|{
                     columns[0].vertical_centered_justified(|ui|{
@@ -60,7 +64,9 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                                 click_voltage(uui,MenuList::PulseOnTime,pos);
                             }
                         });
-                        
+                        // let [num,num2] = mem.lock().unwrap()[8].to_string().split(",").collect();
+                        let value = format!("Device : {}",mem.lock().unwrap()[8]);
+                        ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("OFF").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
@@ -74,6 +80,7 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                                 click_voltage(uui,MenuList::PulseOffTime,pos);
                             }
                         });
+                        ui.label(RichText::new("Device : ").strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                 });
             });
@@ -116,6 +123,9 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                             });
                         })
                     });
+                    // let tt = response.clone();
+                    // let test = ;
+                    ui.label(RichText::new(format!("{:?}",(mem.lock().unwrap())[3])).strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                 }else {
                     ui.add_space(50.);
                     keypad_view(ui, ctx, pulse_info, vol_info, &mut uui.keypad.sellist, &mut uui.set_value, &mut uui.keypad.popon, &mut uui.status_str,request,sender);

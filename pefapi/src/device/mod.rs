@@ -1,7 +1,7 @@
 use serde_derive::{Serialize, Deserialize};
 use super::{ChageList,RequestData};
 use crossbeam_channel::{Sender};
-#[derive(PartialEq, Serialize, Deserialize)]
+#[derive(PartialEq, Serialize, Deserialize,Clone,Copy)]
 pub struct VolatageInfo{
     pub power:bool,
     pub value:f32,
@@ -15,7 +15,7 @@ impl ::std::default::Default for VolatageInfo {
     }
 }
 
-#[derive(PartialEq, Serialize, Deserialize)]
+#[derive(PartialEq, Serialize, Deserialize,Clone,Copy)]
 pub struct PulseInfo{
     pub power:bool,
     pub freq_value:f32,

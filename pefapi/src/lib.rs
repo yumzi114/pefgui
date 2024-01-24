@@ -5,12 +5,12 @@ use tokio_util::codec::{Decoder, Encoder};
 use tokio_serial::{SerialPortBuilderExt, SerialPort, StopBits};
 use bytes::{BytesMut, BufMut};
 use std::{io, str,u8};
-use serde::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize, de::value};
 use serde_hex::{SerHex,StrictPfx,CompactPfx};
 use defaults::Defaults;
 pub mod device;
 use device::{PulseInfo,VolatageInfo};
-
+use std::fmt;
 #[cfg(unix)]
 const DEFAULT_TTY: &str = "/dev/ttyAMA3";
 
@@ -29,16 +29,15 @@ pub enum ChageList{
 pub struct LineCodec ;
 
 impl Decoder for LineCodec {
-    type Item = String;
+    type Item = Vec<u8>;
     type Error = io::Error;
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        let newline = src.as_ref().iter().position(|b| *b == b'\n');
+        let newline = src.as_ref().iter().position(|b| *b == 0xFC);
+        // let mut buf = src;
         if let Some(n) = newline {
-            let line = src.split_to(n + 1);
-            return match str::from_utf8(line.as_ref()) {
-                Ok(s) => Ok(Some(s.to_string())),
-                Err(_) => Err(io::Error::new(io::ErrorKind::Other, "Invalid String")),
-            };
+            let line = src.split_to(n+1);
+            let list = line.to_vec();
+            return Ok(Some(list));
         }
         Ok(None)
     }
@@ -46,6 +45,8 @@ impl Decoder for LineCodec {
 impl Encoder<Vec<RequestDataList>> for LineCodec {
     type Error = io::Error;
     fn encode(&mut self, code:Vec<RequestDataList>, buf: &mut BytesMut) -> Result<(), io::Error> {
+        // buf.put_u8(b'\r');
+        // buf.put_u8(b'\n');
         for i in code{
             //리스트의 순서대로 바이트크기별로 데이터전송
             match i {
@@ -61,7 +62,7 @@ impl Encoder<Vec<RequestDataList>> for LineCodec {
                     buf.put_u8(data);
                 },
                 RequestDataList::DEVICE_SN(data)|
-                RequestDataList::RESERCED(data)|
+                RequestDataList::RESERVED(data)|
                 RequestDataList::CHANGE_VALUE(data)|
                 RequestDataList::SET_PULSE_FREQ(data)|
                 RequestDataList::PULSE_MONI(data)|
@@ -90,13 +91,14 @@ impl Encoder<Vec<RequestDataList>> for LineCodec {
     }
 }
 
-//리스트타입을 합치기위한 열거형
+//리스트타입을 합치기위한 열거형\
+#[derive(Clone,Copy,Debug)]
 pub enum RequestDataList{
     
     START(u8),
     LENGHTH(u8),
     DEVICE_SN(u16),
-    RESERCED(u16),
+    RESERVED(u16),
     COMMAND(u8),
     CHANGE_VALUE(u16),
     PULSE_ONOFF(u8),
@@ -112,6 +114,31 @@ pub enum RequestDataList{
     L2_RESERVED(u32),
     CHECKSUM(u8),
     END(u8),
+}
+impl fmt::Display for RequestDataList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+       match self {
+            RequestDataList::START(value) => write!(f,"{}",value),
+            RequestDataList::LENGHTH(value)=>write!(f, "{}",value),
+            RequestDataList::DEVICE_SN(value)=> write!(f,"{}",value),
+            RequestDataList::RESERVED(value)=> write!(f,"{}",value),
+            RequestDataList::COMMAND(value)=> write!(f,"{}",value),
+            RequestDataList::CHANGE_VALUE(value)=> write!(f,"{}",value),
+            RequestDataList::PULSE_ONOFF(value)=> write!(f,"{}",value),
+            RequestDataList::SET_PULSE_FREQ(value)=> write!(f,"{}",value),
+            RequestDataList::SET_PULSE_TIME([value,value1])=> write!(f,"{},{}",value,value1),
+            RequestDataList::PULSE_MONI(value)=> write!(f,"{}",value),
+            RequestDataList::HV_ONOFF(value)=> write!(f,"{}",value),
+            RequestDataList::SET_VOL(value)=> write!(f,"{}",value),
+            RequestDataList::HV_MONI(value)=> write!(f,"{}",value),
+            RequestDataList::OPEN_SENSOR_MONI(value)=> write!(f,"{}",value),
+            RequestDataList::POWER_CONSUM_MONI(value)=> write!(f,"{}",value),
+            RequestDataList::L_RESERVED(value)=> write!(f,"{}",value),
+            RequestDataList::L2_RESERVED(value)=> write!(f,"{}",value),
+            RequestDataList::CHECKSUM(value)=> write!(f,"{}",value),
+            RequestDataList::END(value)=> write!(f,"{}",value),
+       }
+    }
 }
 #[derive(Debug,PartialEq,Eq,Serialize,Deserialize,Defaults,Clone,Copy)]
 pub struct RequestData{
@@ -201,6 +228,35 @@ impl RequestData {
         self.hv_onoff=if vol_info.power{1}else{0};
         self.set_vol=vol_info.value as u16;
     }
+    pub fn parser(&mut self, buf: &Vec<u8>)->Result<Vec<RequestDataList>,String>{
+        // if buf.len()==20{
+            
+        // }
+        // else {
+        //     return Err("Fail Parsing".to_string())
+        // }
+        self.start=buf[0] as u8;
+        self.length=buf[1] as u8;
+        self.device_sn=buf[2] as u16;
+        self.reserved=buf[3] as u16;
+        self.command=buf[4] as u8;
+        self.change_value=buf[5] as u16;
+        self.pulse_onoff=buf[6] as u8;
+        self.set_pulse_freq=buf[7] as u16;
+        self.set_pulse_time=[buf[8] as u16,buf[9]as u16];
+        self.pulse_moni=buf[10] as u16;
+        self.hv_onoff=buf[11] as u8;
+        self.set_vol=buf[12] as u16;
+        self.hv_moni=buf[13] as u16;
+        self.o_sens_moni=buf[14] as u8;
+        self.p_consum_moni=buf[15] as u16;
+        self.r_reserved=buf[16] as u32;
+        self.t_reserved=buf[17] as u32;
+        self.chechksum=buf[18] as u8;
+        self.end=buf[19] as u8;
+
+        return Ok(self.to_list())
+    }
     //리스트로 반환
     pub fn to_list(&self)->Vec<RequestDataList>
     {
@@ -208,7 +264,7 @@ impl RequestData {
             RequestDataList::START(self.start),
             RequestDataList::LENGHTH(self.length),
             RequestDataList::DEVICE_SN(self.device_sn),
-            RequestDataList::RESERCED(self.reserved),
+            RequestDataList::RESERVED(self.reserved),
             RequestDataList::COMMAND(self.command),
             RequestDataList::CHANGE_VALUE(self.change_value),
             RequestDataList::PULSE_ONOFF(self.pulse_onoff),
@@ -242,7 +298,7 @@ impl RequestData {
                     sumdata+=u64::from(data);
                 },
                 RequestDataList::DEVICE_SN(data)|
-                RequestDataList::RESERCED(data)|
+                RequestDataList::RESERVED(data)|
                 RequestDataList::CHANGE_VALUE(data)|
                 RequestDataList::SET_PULSE_FREQ(data)|
                 RequestDataList::PULSE_MONI(data)|
@@ -272,5 +328,9 @@ impl RequestData {
         let test =hex::decode(&hex_str[hex_str.len()-2..]).unwrap();
         self.chechksum=test[0];
     }
+    pub fn is_checksum(&self){
+
+    }
 }
+
 

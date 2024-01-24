@@ -2,7 +2,7 @@ use std::sync::{Mutex, Arc};
 
 use crossbeam_channel::Sender;
 use eframe::{egui::{Ui, self, InnerResponse}, epaint::{Pos2}};
-use pefapi::RequestData;
+use pefapi::{RequestData, RequestDataList};
 mod head_bar;
 mod bottom_bar;
 mod content;
@@ -15,7 +15,7 @@ pub enum  MenuList{
     PulseOffTime,
     PulseOnTime,
 }
-#[derive(PartialEq)]
+#[derive(PartialEq,Clone,Copy)]
 pub struct OpenMenu{
     pub popon:bool,
     pub sellist:Option<MenuList>,
@@ -31,7 +31,8 @@ impl ::std::default::Default for OpenMenu {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq,Clone)]
+
 pub struct UserUi{
     pub keypad: OpenMenu,
     set_value:String,
@@ -54,9 +55,9 @@ impl UserUi {
             head_bar::top_logo_view(ui, ctx);
         })
     }
-    pub fn content_view(&mut self,ui: &mut Ui,ctx: &egui::Context,pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo, request:&mut RequestData,sender:&mut Sender<RequestData>)->InnerResponse<()>{
+    pub fn content_view(&mut self,ui: &mut Ui,ctx: &egui::Context,pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo, request:&mut RequestData,sender:&mut Sender<RequestData>,response:&Arc<Mutex<Vec<RequestDataList>>>)->InnerResponse<()>{
         egui::panel::CentralPanel::default().show(ctx, |ui| {
-            content::content_view(ui, ctx,self,pulse_info,vol_info,request,sender);
+            content::content_view(ui, ctx,self,pulse_info,vol_info,request,sender,response);
         })
     }
     pub fn bottom_view(&mut self,ui: &mut Ui,ctx: &egui::Context, mem:&Arc<Mutex<usize>>)->InnerResponse<()>{
