@@ -3,10 +3,7 @@ use std::sync::{Arc,Mutex};
 use crossbeam_channel::Sender;
 use eframe::{egui::{Ui, self, InnerResponse, RichText, Sense, TextFormat, PointerState, Widget}, epaint::{Vec2, Color32, text::{LayoutJob, TextWrapping}, FontId, Pos2, vec2}};
 use egui_extras::{TableBuilder, Column};
-use futures::stream::SplitSink;
 use pefapi::{LineCodec, RequestData, RequestDataList};
-use tokio_serial::SerialStream;
-use tokio_util::codec::Framed;
 use super::{UserUi,MenuList,PulseInfo,VolatageInfo};
 use crate::{keypad_view};
 pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo,request:&mut RequestData, sender:&mut Sender<RequestData>,response:&Arc<Mutex<Vec<RequestDataList>>>)->InnerResponse<()>{

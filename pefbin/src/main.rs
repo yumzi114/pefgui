@@ -54,7 +54,6 @@ fn main() -> Result<(), eframe::Error> {
             //시리얼 통신을 위한 스레드
             let recv = app.app_receiver.clone();
             let respone_mem= app.response.clone();
-            
             thread::spawn(move||{
                 let rt  = Runtime::new().unwrap();
                 rt.block_on(async {
