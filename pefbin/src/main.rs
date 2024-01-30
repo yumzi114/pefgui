@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use std::{thread, time::Duration, sync::{Arc, Mutex}};
+use defaults::Defaults;
 use serde_derive::{Serialize, Deserialize};
 use eframe::{egui::{self, ViewportBuilder}, Theme};
 mod interface;
@@ -80,6 +81,8 @@ fn main() -> Result<(), eframe::Error> {
             });
             // let mem = app.thread_time.clone();
             let respone_mem= app.response.clone();
+            // let status_mem=app.mainui.status_str.clone();
+            let err_type = app.err_type.clone();
             thread::spawn(move||{
                 let test  = Runtime::new().unwrap();
                 test.block_on(async {
@@ -96,7 +99,17 @@ fn main() -> Result<(), eframe::Error> {
                             // *mem.lock().unwrap()+=1;
                             if let Ok(datalist)=line_result{
                                 let mut responese_data = RequestData::default();
-                                *respone_mem.lock().unwrap()=responese_data.parser(&datalist).unwrap();
+                                if let Ok(req_data)=responese_data.parser(&datalist){
+                                    *respone_mem.lock().unwrap()=req_data;
+                                    if let Err(e)=responese_data.is_checksum(){
+                                        *err_type.lock().unwrap()=ErrorList::CheckSumErr;
+                                        // *status_mem.lock().unwrap()=e;
+                                    }else {
+                                        *err_type.lock().unwrap()=ErrorList::None;
+                                    }
+                                }
+                                // *respone_mem.lock().unwrap()=responese_data.parser(&datalist).unwrap();
+                                
                             }
                             // let ddd=line_result.unwrap();
                         }
@@ -112,8 +125,13 @@ fn main() -> Result<(), eframe::Error> {
         }),
     )
 }
-
-
+#[derive(Clone,Default)]
+pub enum ErrorList{
+    CheckSumErr,
+    ResponesErr,
+    #[default]
+    None
+}
 #[derive(Clone)]
 struct PEFApp {
     mainui:UserUi,
@@ -125,6 +143,7 @@ struct PEFApp {
     app_sender:Sender<RequestData>,
     app_receiver:Receiver<RequestData>,
     response:Arc<Mutex<Vec<RequestDataList>>>,
+    err_type:Arc<Mutex<ErrorList>>,
 }
 
 impl PEFApp {
@@ -140,6 +159,7 @@ impl PEFApp {
         let (tx, rx) = unbounded();
         let mut response=RequestData::default().to_list();
         let respon_data = Arc::new(Mutex::new(response));
+        let err_type = Arc::new(Mutex::new(ErrorList::default()));
         Self{
             mainui:UserUi::default(),
             voltage,
@@ -148,7 +168,8 @@ impl PEFApp {
             request,
             app_sender:tx,
             app_receiver:rx,
-            response:respon_data
+            response:respon_data,
+            err_type
         }
     }
 }
@@ -160,7 +181,7 @@ impl eframe::App for PEFApp {
             // 인터페이스의 정의된 메서드실행 구문
             self.mainui.head_view(ui, ctx);
             self.mainui.content_view(ui, ctx,&mut self.PulseInfo,&mut self.voltage,&mut self.request,&mut self.app_sender,&mut self.response);
-            self.mainui.bottom_view(ui, ctx,&self.thread_time);
+            self.mainui.bottom_view(ui, ctx,&self.thread_time,&self.err_type);
         });
     }
 }

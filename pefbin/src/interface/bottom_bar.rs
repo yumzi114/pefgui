@@ -1,8 +1,11 @@
 use std::{sync::{Mutex, Arc}};
-
+use super::ErrorList;
 use eframe::{egui::{self, Ui, InnerResponse, RichText, Sense}, epaint::{Color32, Vec2}};
 use super::{UserUi,MenuList};
-pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&mut UserUi)->InnerResponse<()>{
+pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&mut UserUi, err_type:&Arc<Mutex<ErrorList>>)->InnerResponse<()>{
+    // let status_mem = uui.status_str.clone();
+    let err_mem = err_type.clone();
+    
     ui.vertical_centered(|ui|{
         ui.horizontal_wrapped(|ui|{
             ui.label(RichText::new("").strong().size(60.0));
@@ -12,12 +15,26 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                     let time = ".".repeat(dasd);
                     let mut status_string = String::new();
                     ui.add(egui::Label::new(RichText::new("      STATE : ").color(Color32::from_rgb(36, 101, 255)).strong().size(80.0)));
+                    match *err_mem.lock().unwrap() {
+                        ErrorList::CheckSumErr=>{
+                            status_string="ResponseCheckSum Error".to_string();
+                        },
+                        ErrorList::None=>{
+                            status_string=format!("Waiting{}",time.as_str());
+                        },
+                        _=>{}
+                    }
                     if uui.keypad.popon {
+                        // status_string=(*status_mem.lock().unwrap()).clone();
                         status_string=uui.status_str.clone();
                     }
-                    else {
-                        status_string=format!("Waiting{}",time.as_str());
-                    }
+                    // else{
+                    //     status_string=format!("Waiting{}",time.as_str());
+                    // }
+                    
+                    // else {
+                    //     status_string=format!("Waiting{}",time.as_str());
+                    // }
                     match uui.keypad.sellist {
                         Some(MenuList::PulseFreq)
                         |Some(MenuList::PulseOffTime)
@@ -28,30 +45,45 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                                 ui.add(egui::Spinner::new().size(50.));
                             }
                         }
-                        _=>{ui.label(RichText::new(status_string).strong().size(80.0));}
+                        _=>{
+                            ui.label(RichText::new(status_string).strong().size(80.0));
+                        }
                     }
                     
                 });
-                columns[1].horizontal_centered(|ui|{
-                    ui.add_space(550.);
-                    let (one_rect, _) =ui.allocate_at_least(Vec2::new(70., 70.), Sense::hover());
-                    egui::Image::new(egui::include_image!("../../files/asdasd.png"))
-                        .paint_at(ui, one_rect);
-                    ui.add_space(20.);
-                    let (two_rect, _) =ui.allocate_at_least(Vec2::new(70., 70.), Sense::hover());
-                    egui::Image::new(egui::include_image!("../../files/warning.png"))
-                        .paint_at(ui, two_rect);
-                    ui.add_space(20.);
-                    let (temp_rect, _) =ui.allocate_at_least(Vec2::new(70., 70.), Sense::hover());
-                    egui::Image::new(egui::include_image!("../../files/warning.png"))
-                        .paint_at(ui, temp_rect);
-                });
+                columns[1].vertical_centered(|ui|{
+                    // ui.add_space(550.);
+                    // ui.vertical_centered(|ui|{
+                        // ui.add_space(30.);
+                        ui.horizontal_wrapped(|ui|{
+                            ui.add_space(550.);
+                            let (one_rect, _) =ui.allocate_at_least(Vec2::new(70., 70.), Sense::hover());
+                            egui::Image::new(egui::include_image!("../../files/asdasd.png"))
+                                .paint_at(ui, one_rect);
+                            ui.add_space(20.);
+                            let (two_rect, _) =ui.allocate_at_least(Vec2::new(70., 70.), Sense::hover());
+                            egui::Image::new(egui::include_image!("../../files/warning.png"))
+                                .paint_at(ui, two_rect);
+                            ui.add_space(20.);
+                            let (temp_rect, _) =ui.allocate_at_least(Vec2::new(70., 70.), Sense::hover());
+                            egui::Image::new(egui::include_image!("../../files/warning.png"))
+                                .paint_at(ui, temp_rect);
+                        });
+                        ui.add_space(10.);
+                        
+                    });
+                    
+                // });
             });
         });
         ui.horizontal_wrapped(|ui|{
             ui.add_space(86.0);
             ui.label(RichText::new("").strong().size(60.0));
             ui.label(RichText::new("PEF R&D과제명").strong().size(60.0));
+            ui.add_space(810.0);
+            let (temp_rect, _) =ui.allocate_at_least(Vec2::new(450., 70.), Sense::hover());
+            egui::Image::new(egui::include_image!("../../files/gitclogo1.png"))
+                .paint_at(ui, temp_rect);
         });
     })
 }

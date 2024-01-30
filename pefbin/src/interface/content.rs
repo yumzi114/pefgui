@@ -6,8 +6,20 @@ use egui_extras::{TableBuilder, Column};
 use pefapi::{LineCodec, RequestData, RequestDataList};
 use super::{UserUi,MenuList,PulseInfo,VolatageInfo};
 use crate::{keypad_view};
-pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:&mut PulseInfo, vol_info:&mut VolatageInfo,request:&mut RequestData, sender:&mut Sender<RequestData>,response:&Arc<Mutex<Vec<RequestDataList>>>)->InnerResponse<()>{
+pub fn content_view(
+    ui: &mut Ui,
+    ctx: &egui::Context,
+    uui:&mut UserUi, 
+    pulse_info:&mut PulseInfo, 
+    vol_info:&mut VolatageInfo,
+    request:&mut RequestData, 
+    sender:&mut Sender<RequestData>,
+    response:&Arc<Mutex<Vec<RequestDataList>>>
+)->InnerResponse<()>{
+
+    // let status_str = uui.status_str.clone();
     let mem = response.clone();
+    // let err_type
     ui.vertical_centered(|ui|{
         ui.columns(2, |columns|{
             //좌측패널 컴퍼넌트
@@ -20,14 +32,16 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                             ui.add_space(20.);
                             let b_response = button_respone(ui, uui, &MenuList::SetVoltage, format!("{} Kv",vol_info.value.to_string()));
                             if b_response.clicked(){
+                                // status_str.lock().unwrap().clear();
                                 uui.set_value.clear();
+                                // *status_str.lock().unwrap()="Voltage Value Setting".to_string();
                                 uui.status_str="Voltage Value Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                                 click_voltage(uui,MenuList::SetVoltage,pos);
                             }
                         });
                         
-                        let value = format!("Device : {}",mem.lock().unwrap()[7]);
+                        let value = format!("Device : {}",mem.lock().unwrap()[11]);
                         ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                     columns[1].vertical_centered_justified(|ui|{
@@ -37,25 +51,29 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                             let b_response: egui::Response = button_respone(ui, uui, &MenuList::PulseFreq, format!("{} Hz",pulse_info.freq_value.to_string()));
                             if b_response.clicked(){
                                 uui.set_value.clear();
+                                // status_str.lock().unwrap().clear();
+                                // *status_str.lock().unwrap()="Pulse Value Setting".to_string();
                                 uui.status_str="Pulse Value Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                                 click_voltage(uui,MenuList::PulseFreq,pos);
                             }
                         });
-                        let value = format!("Device : {}",mem.lock().unwrap()[11]);
+                        let value = format!("Device : {}",mem.lock().unwrap()[7]);
                         ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                 });
                 ui.add_space(60.);
-                ui.label(RichText::new("Pulse Time").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                ui.label(RichText::new("Time Value").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
                 ui.columns(2, |columns|{
                     columns[0].vertical_centered_justified(|ui|{
-                        ui.label(RichText::new("ON").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        ui.label(RichText::new("Pulse Time").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
                             let b_response = button_respone(ui, uui, &MenuList::PulseOnTime, format!("{} ms",pulse_info.on_time_value.to_string()));
                             if b_response.clicked(){
                                 uui.set_value.clear();
+                                // status_str.lock().unwrap().clear();
+                                // *status_str.lock().unwrap()="Pulse ON_TIME Setting".to_string();
                                 uui.status_str="Pulse ON_TIME Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                                 click_voltage(uui,MenuList::PulseOnTime,pos);
@@ -66,12 +84,14 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                         ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                     columns[1].vertical_centered_justified(|ui|{
-                        ui.label(RichText::new("OFF").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        ui.label(RichText::new("Runing Time").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
                             let b_response = button_respone(ui, uui, &MenuList::PulseOffTime, format!("{} ms",pulse_info.off_time_value.to_string()));
                             if b_response.clicked(){
                                 uui.set_value.clear();
+                                // status_str.lock().unwrap().clear();
+                                // *status_str.lock().unwrap()="Pulse OFF_TIME Setting".to_string();
                                 uui.status_str="Pulse OFF_TIME Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                                 click_voltage(uui,MenuList::PulseOffTime,pos);
@@ -122,7 +142,78 @@ pub fn content_view(ui: &mut Ui,ctx: &egui::Context,uui:&mut UserUi, pulse_info:
                     });
                     // let tt = response.clone();
                     // let test = ;
-                    ui.label(RichText::new(format!("{:?}",(mem.lock().unwrap())[3])).strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
+                    // TableBuilder::new(ui)
+                    //     .cell_layout(egui::Layout::top_down(egui::Align::Center))
+                    //     .striped(true)
+                    //     .header(60., |mut header|{
+                    //         header.col(|ui|{
+                    //             ui.label("text");
+                    //         });
+                    //     })
+                    //     .body(|mut body|{
+                    //         body.row(60., |mut row|{
+                    //             row.col(|ui|{
+                    //                 ui.label("text");
+                    //             });
+                    //         });
+                    //     });
+                    ui.add_space(15.);
+                    ui.label(RichText::new("Monitoring").strong().size(45.0).color(Color32::from_rgb(255, 200, 36)));
+                    ui.push_id(2, |ui| {
+                        TableBuilder::new(ui)
+                        // .column(Column::auto().resizable(true))
+                        // .column(Column::remainder())
+                        .cell_layout(egui::Layout::top_down(egui::Align::Center))
+                        .striped(true)
+                        .column(Column::remainder())
+                        .column(Column::remainder())
+                        .header(70.0, |mut header| {
+                            header.col(|ui| {
+                                ui.add_space(10.);
+                                
+                                ui.label(RichText::new("Voltage").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                            });
+                            header.col(|ui| {
+                                ui.add_space(10.);
+                                // let value = format!("Device : {}",mem.lock().unwrap()[7]);
+                                ui.label(RichText::new(format!("{}",mem.lock().unwrap()[11])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                            });
+                        })
+                        .body(|mut body| {
+                            body.row(70.0, |mut row| {
+                                row.col(|ui| {
+                                    ui.add_space(10.);
+                                    ui.label(RichText::new("Pulse").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                });
+                                row.col(|ui| {
+                                    ui.add_space(10.);
+                                    ui.label(RichText::new(format!("{}",mem.lock().unwrap()[7])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                    // ui.label(RichText::new("Value").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                });
+                            });
+                            body.row(70.0, |mut row| {
+                                row.col(|ui| {
+                                    ui.label(RichText::new("Power\nConsumption").strong().size(30.0).color(Color32::from_rgb(247, 104, 42)));
+                                });
+                                row.col(|ui| {
+                                    ui.add_space(10.);
+                                    ui.label(RichText::new(format!("{}",mem.lock().unwrap()[14])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                    // ui.label(RichText::new("Value").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                });
+                            });
+                            body.row(70.0, |mut row| {
+                                row.col(|ui| {
+                                    ui.label(RichText::new("Device\nLimit Time").strong().size(30.0).color(Color32::from_rgb(247, 104, 42)));
+                                });
+                                row.col(|ui| {
+                                    ui.add_space(10.);
+                                    ui.label(RichText::new(format!("{}",mem.lock().unwrap()[17])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                    // ui.label(RichText::new("Value").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                });
+                            });
+                        });
+                    });
+                    
                 }else {
                     ui.add_space(50.);
                     keypad_view(ui, ctx, pulse_info, vol_info, &mut uui.keypad.sellist, &mut uui.set_value, &mut uui.keypad.popon, &mut uui.status_str,request,sender);

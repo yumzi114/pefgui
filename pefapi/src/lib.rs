@@ -14,7 +14,6 @@ use std::fmt;
 #[cfg(unix)]
 const DEFAULT_TTY: &str = "/dev/ttyAMA3";
 
-
 pub enum ChageList{
     HighVolValue,
     PulseFreq,
@@ -22,8 +21,6 @@ pub enum ChageList{
     HighVol_ON_OFF,
     Pulse_ON_OFF
 }
-
-
 
 #[derive(Clone,Copy)]
 pub struct LineCodec ;
@@ -198,7 +195,7 @@ pub struct RequestData{
     t_reserved:u32,
     #[serde(with = "SerHex::<CompactPfx>")]
     #[def = "0x00"]
-    chechksum:u8,
+    checksum:u8,
     #[serde(with = "SerHex::<CompactPfx>")]
     #[def = "0xFC"]
     end:u8,
@@ -235,50 +232,79 @@ impl RequestData {
         // else {
         //     return Err("Fail Parsing".to_string())
         // }
-        self.start=buf[0] as u8;
-        self.length=buf[1] as u8;
-        self.device_sn=buf[2] as u16;
-        self.reserved=buf[3] as u16;
-        self.command=buf[4] as u8;
-        self.change_value=buf[5] as u16;
-        self.pulse_onoff=buf[6] as u8;
-        self.set_pulse_freq=buf[7] as u16;
-        self.set_pulse_time=[buf[8] as u16,buf[9]as u16];
-        self.pulse_moni=buf[10] as u16;
-        self.hv_onoff=buf[11] as u8;
-        self.set_vol=buf[12] as u16;
-        self.hv_moni=buf[13] as u16;
-        self.o_sens_moni=buf[14] as u8;
-        self.p_consum_moni=buf[15] as u16;
-        self.r_reserved=buf[16] as u32;
-        self.t_reserved=buf[17] as u32;
-        self.chechksum=buf[18] as u8;
-        self.end=buf[19] as u8;
-
-        return Ok(self.to_list())
+        // let list= *buf.as_slice();
+        if buf.len()==36{
+            self.start=buf[0] as u8;
+            self.length=buf[1] as u8;
+            
+            self.device_sn=u16::from_be_bytes([buf[2],buf[3]]);
+            self.reserved=u16::from_be_bytes([buf[4],buf[5]]);
+            self.command=buf[6] as u8;
+            self.change_value=u16::from_be_bytes([buf[7],buf[8]]);
+            self.pulse_onoff=buf[9] as u8;
+            self.set_pulse_freq=u16::from_be_bytes([buf[10],buf[11]]);
+            self.set_pulse_time=[
+                u16::from_be_bytes([buf[12],buf[13]]),
+                u16::from_be_bytes([buf[14],buf[15]])
+            ];
+            self.pulse_moni=u16::from_be_bytes([buf[16],buf[17]]);
+            self.hv_onoff=buf[18] as u8;
+            self.set_vol=u16::from_be_bytes([buf[19],buf[20]]);
+            self.hv_moni=u16::from_be_bytes([buf[21],buf[22]]);
+            self.o_sens_moni=buf[23] as u8;
+            self.p_consum_moni=u16::from_be_bytes([buf[21],buf[22]]);
+            self.r_reserved=u32::from_be_bytes([buf[26],buf[27],buf[28],buf[29]]);
+            self.t_reserved=u32::from_be_bytes([buf[30],buf[31],buf[32],buf[33]]);
+            self.checksum=u8::from_be_bytes([buf[34]]);
+            self.end=u8::from_be_bytes([buf[35]]);
+            return Ok(self.to_list())
+        }else{
+            return Err("Fail Parsing".to_string());
+        }
+        
+        
     }
     //리스트로 반환
     pub fn to_list(&self)->Vec<RequestDataList>
     {
         let mut list=vec![
+            //0
             RequestDataList::START(self.start),
+            //1
             RequestDataList::LENGHTH(self.length),
+            //2
             RequestDataList::DEVICE_SN(self.device_sn),
+            //3
             RequestDataList::RESERVED(self.reserved),
+            //4
             RequestDataList::COMMAND(self.command),
+            //5
             RequestDataList::CHANGE_VALUE(self.change_value),
+            //6
             RequestDataList::PULSE_ONOFF(self.pulse_onoff),
+            //7
             RequestDataList::SET_PULSE_FREQ(self.set_pulse_freq),
+            //8
             RequestDataList::SET_PULSE_TIME(self.set_pulse_time),
+            //9
             RequestDataList::PULSE_MONI(self.pulse_moni),
+            //10
             RequestDataList::HV_ONOFF(self.hv_onoff),
+            //11
             RequestDataList::SET_VOL(self.set_vol),
+            //12
             RequestDataList::HV_MONI(self.hv_moni),
+            //13
             RequestDataList::OPEN_SENSOR_MONI(self.o_sens_moni),
+            //14
             RequestDataList::POWER_CONSUM_MONI(self.p_consum_moni),
+            //15
             RequestDataList::L_RESERVED(self.r_reserved),
+            //16
             RequestDataList::L2_RESERVED(self.t_reserved),
-            RequestDataList::CHECKSUM(self.chechksum),
+            //17
+            RequestDataList::CHECKSUM(self.checksum),
+            //18
             RequestDataList::END(self.end),
         ];
         list
@@ -326,10 +352,57 @@ impl RequestData {
         }
         let hex_str = format!("{:#x}",sumdata);
         let test =hex::decode(&hex_str[hex_str.len()-2..]).unwrap();
-        self.chechksum=test[0];
+        self.checksum=test[0];
     }
-    pub fn is_checksum(&self){
+    pub fn is_checksum(&self)->Result<String, String>{
+        let list = self.to_list();
+        let mut sumdata:u64=0;
+        for i in &list {
+            match *i {
+                RequestDataList::LENGHTH(data)|
+                RequestDataList::COMMAND(data)|
+                RequestDataList::PULSE_ONOFF(data)|
+                RequestDataList::HV_ONOFF(data)|
+                RequestDataList::OPEN_SENSOR_MONI(data)
+                =>{
+                    sumdata+=u64::from(data);
+                },
+                RequestDataList::DEVICE_SN(data)|
+                RequestDataList::RESERVED(data)|
+                RequestDataList::CHANGE_VALUE(data)|
+                RequestDataList::SET_PULSE_FREQ(data)|
+                RequestDataList::PULSE_MONI(data)|
+                RequestDataList::SET_VOL(data)|
+                RequestDataList::HV_MONI(data)|
+                RequestDataList::POWER_CONSUM_MONI(data)
+                =>{
+                    sumdata+=u64::from(data);
+                },
+                RequestDataList::SET_PULSE_TIME(data)
+                =>{
+                    for i in data{
+                        sumdata+=u64::from(i);
+                    }
+                },
+                RequestDataList::L_RESERVED(data)|
+                RequestDataList::L2_RESERVED(data)
+                =>{
+                    sumdata+=u64::from(data);
+                },
+                _=>{
+                    // buf.put_u8(_);
+                }
+            }
+        }
+        let hex_str = format!("{:#x}",sumdata);
+        let check_sum =hex::decode(&hex_str[hex_str.len()-2..]).unwrap();
+        if self.checksum!=check_sum[0]{
+            return Err("Fail checksum Err".to_string());
+        }
+        let num = check_sum[0].to_string();
 
+        return Ok(num);
+        // self.checksum=test[0];
     }
 }
 

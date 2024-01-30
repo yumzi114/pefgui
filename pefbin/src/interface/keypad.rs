@@ -1,4 +1,6 @@
 
+use std::sync::{Arc, Mutex};
+
 use super::MenuList;
 use crossbeam_channel::Sender;
 use pefapi::{RequestData,device::{PulseInfo,VolatageInfo}};
@@ -15,6 +17,7 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
         Some(MenuList::PulseOnTime)=>"Pulse ON_Time Set",
         _=>""
     };
+    // let status_mem = status_str.clone();
     // ui.add_space(5.);
     ui.vertical_centered_justified(|ui|{
         ui.add(egui::Label::new(RichText::new(format!("{}",title)).color(egui::Color32::WHITE).strong().size(50.0)));
@@ -74,14 +77,17 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                     if ui.add(egui::Button::new(RichText::new("Set").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
                             Some(MenuList::PulseFreq)=>{
+                                
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >1000.0){
                                     *status_str="Limit value (0 ~ 1000 Hz)".to_string();
+                                    // *status_mem.lock().unwrap()="Limit value (0 ~ 1000 Hz)".to_string();
                                     setvalue.clear();
                                 }else {
                                     let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
                                     pulse.freq_value=num.parse::<f32>().unwrap_or(0.);
                                     pulse.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", pulse.freq_value.to_string());
+                                    // *status_mem.lock().unwrap()=format!("Set Done Value : {} ", pulse.freq_value.to_string());
                                     setvalue.clear();
                                 }
                             },

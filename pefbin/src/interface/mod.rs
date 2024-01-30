@@ -3,6 +3,7 @@ use std::sync::{Mutex, Arc};
 use crossbeam_channel::Sender;
 use eframe::{egui::{Ui, self, InnerResponse}, epaint::{Pos2}};
 use pefapi::{RequestData, RequestDataList};
+use super::ErrorList;
 mod head_bar;
 mod bottom_bar;
 mod content;
@@ -31,12 +32,12 @@ impl ::std::default::Default for OpenMenu {
     }
 }
 
-#[derive(PartialEq,Clone)]
+#[derive(Clone)]
 
 pub struct UserUi{
     pub keypad: OpenMenu,
     set_value:String,
-    status_str:String,
+    pub status_str:String,
 }
 impl ::std::default::Default for UserUi {
     fn default() -> Self { 
@@ -60,9 +61,9 @@ impl UserUi {
             content::content_view(ui, ctx,self,pulse_info,vol_info,request,sender,response);
         })
     }
-    pub fn bottom_view(&mut self,ui: &mut Ui,ctx: &egui::Context, mem:&Arc<Mutex<usize>>)->InnerResponse<()>{
+    pub fn bottom_view(&mut self,ui: &mut Ui,ctx: &egui::Context, mem:&Arc<Mutex<usize>>,err_type:&Arc<Mutex<ErrorList>>)->InnerResponse<()>{
         egui::containers::panel::TopBottomPanel::bottom("bottom_view").show_separator_line(false).show(ctx, |ui| {
-            bottom_bar::bottom_view(ui, ctx,mem, self);
+            bottom_bar::bottom_view(ui, ctx,mem, self,err_type);
         })
     }
 }
