@@ -48,6 +48,7 @@ pub struct UserUi{
     set_value:String,
     pub status_str:String,
     pub view_menu:ViewList,
+    pub table_sel:Vec<bool>,
 }
 impl ::std::default::Default for UserUi {
     fn default() -> Self { 
@@ -55,7 +56,8 @@ impl ::std::default::Default for UserUi {
             keypad:OpenMenu::default(),
             set_value:String::new(),
             status_str:String::new(),
-            view_menu:ViewList::default()
+            view_menu:ViewList::default(),
+            table_sel:vec![false,false,false,false,false,false,false,false,false]
         }
     }
 }
@@ -74,7 +76,7 @@ impl UserUi {
                     content::content_view(ui, ctx,self,pulse_info,vol_info,request,sender,response);
                 },
                 ViewList::Main=>{
-                    main_view::main_view(ui, ctx, self);
+                    main_view::main_view(ui, ctx, self,response);
                 }
             }
             

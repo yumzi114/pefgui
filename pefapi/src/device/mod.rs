@@ -51,7 +51,6 @@ impl PulseInfo {
                 let data = req_data.clone();
                 let save_sender = sender.clone();
                 save_sender.send(data).unwrap();
-
             },
                 _=>{}
             }

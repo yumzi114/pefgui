@@ -19,22 +19,25 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                         ErrorList::CheckSumErr=>{
                             status_string="ResponseCheckSum Error".to_string();
                         },
+                        ErrorList::CRCError=>{
+                            status_string="CRC Error".to_string();
+                        },
+                        ErrorList::OverLimit=>{
+                            status_string="Over Limit".to_string();
+                        },
+                        ErrorList::NonResponse=>{
+                            status_string="NonResponse".to_string();
+                        },
                         ErrorList::None=>{
                             status_string=format!("Waiting{}",time.as_str());
                         },
-                        _=>{}
+                        _=>{
+
+                        }
                     }
                     if uui.keypad.popon {
-                        // status_string=(*status_mem.lock().unwrap()).clone();
                         status_string=uui.status_str.clone();
                     }
-                    // else{
-                    //     status_string=format!("Waiting{}",time.as_str());
-                    // }
-                    
-                    // else {
-                    //     status_string=format!("Waiting{}",time.as_str());
-                    // }
                     match uui.keypad.sellist {
                         Some(MenuList::PulseFreq)
                         |Some(MenuList::PulseOffTime)
@@ -52,9 +55,6 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                     
                 });
                 columns[1].vertical_centered(|ui|{
-                    // ui.add_space(550.);
-                    // ui.vertical_centered(|ui|{
-                        // ui.add_space(30.);
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(550.);
                             let (one_rect, _) =ui.allocate_at_least(Vec2::new(70., 70.), Sense::hover());

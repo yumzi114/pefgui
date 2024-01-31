@@ -89,7 +89,7 @@ impl Encoder<Vec<RequestDataList>> for LineCodec {
 }
 
 //리스트타입을 합치기위한 열거형\
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone,Copy,Debug,PartialEq)]
 pub enum RequestDataList{
     
     START(u8),
@@ -106,6 +106,7 @@ pub enum RequestDataList{
     SET_VOL(u16),
     HV_MONI(u16),
     OPEN_SENSOR_MONI(u8),
+
     POWER_CONSUM_MONI(u16),
     L_RESERVED(u32),
     L2_RESERVED(u32),
@@ -164,7 +165,7 @@ pub struct RequestData{
     #[def = "00"]
     pulse_onoff:u8,
     #[serde(with = "SerHex::<CompactPfx>")]
-    #[def = "0x0001"]
+    #[def = "0x0000"]
     set_pulse_freq:u16,
     #[serde(with = "SerHex::<StrictPfx>")]
     #[def = "[0x0000,0x0000]"]
@@ -185,7 +186,7 @@ pub struct RequestData{
     #[def = "0x00"]
     o_sens_moni:u8,
     #[serde(with = "SerHex::<CompactPfx>")]
-    #[def = "0x0000"]
+    #[def = "0x0300"]
     p_consum_moni:u16,
     #[serde(with = "SerHex::<CompactPfx>")]
     #[def = "0x00000000"]
@@ -203,6 +204,7 @@ pub struct RequestData{
 impl RequestData {
     //변경된 값을 구조체에서 변경
     pub fn into_change_value(&mut self, change_value:ChageList){
+        
         let c_value:u16 = match change_value {
             ChageList::HighVolValue=>0b0000_0010_0000_0000,
             ChageList::PulseFreq=>0b1000_0000_0000_0000,
@@ -226,17 +228,9 @@ impl RequestData {
         self.set_vol=vol_info.value as u16;
     }
     pub fn parser(&mut self, buf: &Vec<u8>)->Result<Vec<RequestDataList>,String>{
-        // if buf.len()==20{
-            
-        // }
-        // else {
-        //     return Err("Fail Parsing".to_string())
-        // }
-        // let list= *buf.as_slice();
         if buf.len()==36{
             self.start=buf[0] as u8;
             self.length=buf[1] as u8;
-            
             self.device_sn=u16::from_be_bytes([buf[2],buf[3]]);
             self.reserved=u16::from_be_bytes([buf[4],buf[5]]);
             self.command=buf[6] as u8;
@@ -252,7 +246,7 @@ impl RequestData {
             self.set_vol=u16::from_be_bytes([buf[19],buf[20]]);
             self.hv_moni=u16::from_be_bytes([buf[21],buf[22]]);
             self.o_sens_moni=buf[23] as u8;
-            self.p_consum_moni=u16::from_be_bytes([buf[21],buf[22]]);
+            self.p_consum_moni=u16::from_be_bytes([buf[24],buf[25]]);
             self.r_reserved=u32::from_be_bytes([buf[26],buf[27],buf[28],buf[29]]);
             self.t_reserved=u32::from_be_bytes([buf[30],buf[31],buf[32],buf[33]]);
             self.checksum=u8::from_be_bytes([buf[34]]);
@@ -261,8 +255,6 @@ impl RequestData {
         }else{
             return Err("Fail Parsing".to_string());
         }
-        
-        
     }
     //리스트로 반환
     pub fn to_list(&self)->Vec<RequestDataList>
@@ -312,52 +304,44 @@ impl RequestData {
     //구조체내에 데이터를 계산하고 체크섬변경
     pub fn checksum(&mut self){
         let mut list = self.to_list();
-        let mut sumdata:u64=0;
-        for i in &list {
-            match *i {
-                RequestDataList::LENGHTH(data)|
-                RequestDataList::COMMAND(data)|
-                RequestDataList::PULSE_ONOFF(data)|
-                RequestDataList::HV_ONOFF(data)|
-                RequestDataList::OPEN_SENSOR_MONI(data)
-                =>{
-                    sumdata+=u64::from(data);
-                },
-                RequestDataList::DEVICE_SN(data)|
-                RequestDataList::RESERVED(data)|
-                RequestDataList::CHANGE_VALUE(data)|
-                RequestDataList::SET_PULSE_FREQ(data)|
-                RequestDataList::PULSE_MONI(data)|
-                RequestDataList::SET_VOL(data)|
-                RequestDataList::HV_MONI(data)|
-                RequestDataList::POWER_CONSUM_MONI(data)
-                =>{
-                    sumdata+=u64::from(data);
-                },
-                RequestDataList::SET_PULSE_TIME(data)
-                =>{
-                    for i in data{
-                        sumdata+=u64::from(i);
-                    }
-                },
-                RequestDataList::L_RESERVED(data)|
-                RequestDataList::L2_RESERVED(data)
-                =>{
-                    sumdata+=u64::from(data);
-                },
-                _=>{
-                    // buf.put_u8(_);
-                }
-            }
-        }
+        let sumdata: u64 =list_add(&list);
         let hex_str = format!("{:#x}",sumdata);
         let test =hex::decode(&hex_str[hex_str.len()-2..]).unwrap();
         self.checksum=test[0];
     }
     pub fn is_checksum(&self)->Result<String, String>{
         let list = self.to_list();
-        let mut sumdata:u64=0;
-        for i in &list {
+        let sumdata: u64 =list_add(&list);
+        let hex_str = format!("{:#x}",sumdata);
+        let check_sum =hex::decode(&hex_str[hex_str.len()-2..]).unwrap();
+        if self.checksum!=check_sum[0]{
+            return Err("Fail checksum Err".to_string());
+        }
+        let num = check_sum[0].to_string();
+        return Ok(num);
+    }
+    fn is_err_response(&self)->Result<String,String>{
+        match self.command {
+            0xE0=>Err("Over Limit".to_string()),
+            0xE1=>Err("Non Response".to_string()),
+            0xE2=>Err("CRC Error".to_string()),
+            0x01|0x02|0x03=>Ok("success".to_string()),
+            _=>{
+                Err("unknown".to_string())
+            }
+        }
+    }
+    pub fn check_all(&self)->Result<String,String>{
+        self.is_err_response()?;
+        self.is_checksum()?;
+        Ok("success".to_string())
+    }
+}
+
+
+pub fn list_add(list:&Vec<RequestDataList>)->u64{
+    let mut sumdata:u64=0;
+        for i in list {
             match *i {
                 RequestDataList::LENGHTH(data)|
                 RequestDataList::COMMAND(data)|
@@ -365,7 +349,9 @@ impl RequestData {
                 RequestDataList::HV_ONOFF(data)|
                 RequestDataList::OPEN_SENSOR_MONI(data)
                 =>{
-                    sumdata+=u64::from(data);
+                    if let Some(num)=sumdata.checked_add(u64::from(data)){
+                        sumdata+=u64::from(num);
+                    }
                 },
                 RequestDataList::DEVICE_SN(data)|
                 RequestDataList::RESERVED(data)|
@@ -376,34 +362,28 @@ impl RequestData {
                 RequestDataList::HV_MONI(data)|
                 RequestDataList::POWER_CONSUM_MONI(data)
                 =>{
-                    sumdata+=u64::from(data);
+                    if let Some(num)=sumdata.checked_add(u64::from(data)){
+                        sumdata+=u64::from(num);
+                    }
                 },
                 RequestDataList::SET_PULSE_TIME(data)
                 =>{
                     for i in data{
-                        sumdata+=u64::from(i);
+                        if let Some(num)=sumdata.checked_add(u64::from(i)){
+                            sumdata+=u64::from(num);
+                        }
                     }
                 },
                 RequestDataList::L_RESERVED(data)|
                 RequestDataList::L2_RESERVED(data)
                 =>{
-                    sumdata+=u64::from(data);
+                    if let Some(num)=sumdata.checked_add(u64::from(data)){
+                        sumdata+=u64::from(num);
+                    }
                 },
                 _=>{
-                    // buf.put_u8(_);
                 }
             }
         }
-        let hex_str = format!("{:#x}",sumdata);
-        let check_sum =hex::decode(&hex_str[hex_str.len()-2..]).unwrap();
-        if self.checksum!=check_sum[0]{
-            return Err("Fail checksum Err".to_string());
-        }
-        let num = check_sum[0].to_string();
-
-        return Ok(num);
-        // self.checksum=test[0];
-    }
+    sumdata
 }
-
-

@@ -17,9 +17,7 @@ pub fn content_view(
     response:&Arc<Mutex<Vec<RequestDataList>>>
 )->InnerResponse<()>{
 
-    // let status_str = uui.status_str.clone();
     let mem = response.clone();
-    // let err_type
     ui.vertical_centered(|ui|{
         ui.columns(2, |columns|{
             //좌측패널 컴퍼넌트
@@ -32,9 +30,7 @@ pub fn content_view(
                             ui.add_space(20.);
                             let b_response = button_respone(ui, uui, &MenuList::SetVoltage, format!("{} Kv",vol_info.value.to_string()));
                             if b_response.clicked(){
-                                // status_str.lock().unwrap().clear();
                                 uui.set_value.clear();
-                                // *status_str.lock().unwrap()="Voltage Value Setting".to_string();
                                 uui.status_str="Voltage Value Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                                 click_voltage(uui,MenuList::SetVoltage,pos);
@@ -51,8 +47,6 @@ pub fn content_view(
                             let b_response: egui::Response = button_respone(ui, uui, &MenuList::PulseFreq, format!("{} Hz",pulse_info.freq_value.to_string()));
                             if b_response.clicked(){
                                 uui.set_value.clear();
-                                // status_str.lock().unwrap().clear();
-                                // *status_str.lock().unwrap()="Pulse Value Setting".to_string();
                                 uui.status_str="Pulse Value Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                                 click_voltage(uui,MenuList::PulseFreq,pos);
@@ -72,14 +66,11 @@ pub fn content_view(
                             let b_response = button_respone(ui, uui, &MenuList::PulseOnTime, format!("{} ms",pulse_info.on_time_value.to_string()));
                             if b_response.clicked(){
                                 uui.set_value.clear();
-                                // status_str.lock().unwrap().clear();
-                                // *status_str.lock().unwrap()="Pulse ON_TIME Setting".to_string();
                                 uui.status_str="Pulse ON_TIME Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                                 click_voltage(uui,MenuList::PulseOnTime,pos);
                             }
                         });
-                        // let [num,num2] = mem.lock().unwrap()[8].to_string().split(",").collect();
                         let value = format!("Device : {}",mem.lock().unwrap()[8]);
                         ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
@@ -90,8 +81,6 @@ pub fn content_view(
                             let b_response = button_respone(ui, uui, &MenuList::PulseOffTime, format!("{} ms",pulse_info.off_time_value.to_string()));
                             if b_response.clicked(){
                                 uui.set_value.clear();
-                                // status_str.lock().unwrap().clear();
-                                // *status_str.lock().unwrap()="Pulse OFF_TIME Setting".to_string();
                                 uui.status_str="Pulse OFF_TIME Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
                                 click_voltage(uui,MenuList::PulseOffTime,pos);
@@ -140,29 +129,10 @@ pub fn content_view(
                             });
                         })
                     });
-                    // let tt = response.clone();
-                    // let test = ;
-                    // TableBuilder::new(ui)
-                    //     .cell_layout(egui::Layout::top_down(egui::Align::Center))
-                    //     .striped(true)
-                    //     .header(60., |mut header|{
-                    //         header.col(|ui|{
-                    //             ui.label("text");
-                    //         });
-                    //     })
-                    //     .body(|mut body|{
-                    //         body.row(60., |mut row|{
-                    //             row.col(|ui|{
-                    //                 ui.label("text");
-                    //             });
-                    //         });
-                    //     });
                     ui.add_space(15.);
                     ui.label(RichText::new("Monitoring").strong().size(45.0).color(Color32::from_rgb(255, 200, 36)));
                     ui.push_id(2, |ui| {
                         TableBuilder::new(ui)
-                        // .column(Column::auto().resizable(true))
-                        // .column(Column::remainder())
                         .cell_layout(egui::Layout::top_down(egui::Align::Center))
                         .striped(true)
                         .column(Column::remainder())
@@ -175,7 +145,6 @@ pub fn content_view(
                             });
                             header.col(|ui| {
                                 ui.add_space(10.);
-                                // let value = format!("Device : {}",mem.lock().unwrap()[7]);
                                 ui.label(RichText::new(format!("{}",mem.lock().unwrap()[11])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                         })
@@ -188,7 +157,6 @@ pub fn content_view(
                                 row.col(|ui| {
                                     ui.add_space(10.);
                                     ui.label(RichText::new(format!("{}",mem.lock().unwrap()[7])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
-                                    // ui.label(RichText::new("Value").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                                 });
                             });
                             body.row(70.0, |mut row| {
@@ -198,7 +166,6 @@ pub fn content_view(
                                 row.col(|ui| {
                                     ui.add_space(10.);
                                     ui.label(RichText::new(format!("{}",mem.lock().unwrap()[14])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
-                                    // ui.label(RichText::new("Value").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                                 });
                             });
                             body.row(70.0, |mut row| {
@@ -207,8 +174,7 @@ pub fn content_view(
                                 });
                                 row.col(|ui| {
                                     ui.add_space(10.);
-                                    ui.label(RichText::new(format!("{}",mem.lock().unwrap()[17])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
-                                    // ui.label(RichText::new("Value").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                    ui.label(RichText::new(format!("{}",mem.lock().unwrap()[4])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                                 });
                             });
                         });
@@ -241,7 +207,6 @@ fn click_voltage(uui:&mut UserUi, selmenu:MenuList, get_pos:Pos2){
 fn button_respone(ui: &mut Ui, uui:&UserUi, check_sel:&MenuList,value_str:String)->egui::Response{
     let b_response: egui::Response = 
     if uui.keypad.sellist==Some(*check_sel){
-        // ui.add(egui::Button::new(RichText::new(value_str).color(Color32::from_rgb(133, 255, 115)).strong().size(90.0)).min_size(Vec2{x:50.0,y:130.0}).sense(Sense::click()))
         ui.add(egui::Button::new(RichText::new(value_str).strong().size(90.0)).min_size(Vec2{x:420.0,y:130.0}).sense(Sense::click()).fill(Color32::from_rgb(133, 255, 115)).rounding(egui::Rounding{nw:50.,ne:50.,sw:50.,se:50.,}))
     }
     else {

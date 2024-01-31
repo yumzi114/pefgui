@@ -80,14 +80,12 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                                 
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >1000.0){
                                     *status_str="Limit value (0 ~ 1000 Hz)".to_string();
-                                    // *status_mem.lock().unwrap()="Limit value (0 ~ 1000 Hz)".to_string();
                                     setvalue.clear();
                                 }else {
                                     let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
                                     pulse.freq_value=num.parse::<f32>().unwrap_or(0.);
                                     pulse.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", pulse.freq_value.to_string());
-                                    // *status_mem.lock().unwrap()=format!("Set Done Value : {} ", pulse.freq_value.to_string());
                                     setvalue.clear();
                                 }
                             },

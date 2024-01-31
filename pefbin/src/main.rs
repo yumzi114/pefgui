@@ -72,16 +72,10 @@ fn main() -> Result<(), eframe::Error> {
                             let list = req_data.to_list();
                             tx.send(list).await.unwrap();
                         }
-                        // if let Some(data)=rx.next().await{
-                        //     *mem.lock().unwrap()+=1;
-                        //     // let dd = data; 
-                        // }
                     }
                 });
             });
-            // let mem = app.thread_time.clone();
             let respone_mem= app.response.clone();
-            // let status_mem=app.mainui.status_str.clone();
             let err_type = app.err_type.clone();
             thread::spawn(move||{
                 let test  = Runtime::new().unwrap();
@@ -94,29 +88,36 @@ fn main() -> Result<(), eframe::Error> {
                     let mut reader =LineCodec.framed(port);
                     loop{
                         thread::sleep(Duration::from_millis(1));
-                        // *mem.lock().unwrap()+=1;
                         if let Some(line_result)=reader.next().await {
-                            // *mem.lock().unwrap()+=1;
                             if let Ok(datalist)=line_result{
                                 let mut responese_data = RequestData::default();
                                 if let Ok(req_data)=responese_data.parser(&datalist){
                                     *respone_mem.lock().unwrap()=req_data;
                                     if let Err(e)=responese_data.is_checksum(){
                                         *err_type.lock().unwrap()=ErrorList::CheckSumErr;
-                                        // *status_mem.lock().unwrap()=e;
-                                    }else {
+                                    }
+                                    else if let Err(e)=responese_data.check_all(){
+                                        match &e[..] {
+                                            "Over Limit"=>{
+                                                *err_type.lock().unwrap()=ErrorList::OverLimit;
+                                            },
+                                            "Non Response"=>{
+                                                *err_type.lock().unwrap()=ErrorList::NonResponse;
+                                            },
+                                            "CRC Error"=>{
+                                                *err_type.lock().unwrap()=ErrorList::CRCError;
+                                            },
+                                            _=>{}
+                                        }
+                                    }
+                                    
+                                    else {
                                         *err_type.lock().unwrap()=ErrorList::None;
                                     }
                                 }
-                                // *respone_mem.lock().unwrap()=responese_data.parser(&datalist).unwrap();
-                                
                             }
-                            // let ddd=line_result.unwrap();
                         }
                     }
-                    // while let Some(line_result)=reader.next().await {
-                    //     let ddd=line_result.unwrap();
-                    // }
                 });
                     
             });
@@ -129,6 +130,9 @@ fn main() -> Result<(), eframe::Error> {
 pub enum ErrorList{
     CheckSumErr,
     ResponesErr,
+    OverLimit,
+    NonResponse,
+    CRCError,
     #[default]
     None
 }
