@@ -13,6 +13,7 @@ use device::{PulseInfo,VolatageInfo};
 use std::fmt;
 #[cfg(unix)]
 const DEFAULT_TTY: &str = "/dev/ttyAMA3";
+// const DEFAULT_TTY: &str = "/dev/ttyAMA0";
 
 pub enum ChageList{
     HighVolValue,
@@ -91,7 +92,6 @@ impl Encoder<Vec<RequestDataList>> for LineCodec {
 //리스트타입을 합치기위한 열거형\
 #[derive(Clone,Copy,Debug,PartialEq)]
 pub enum RequestDataList{
-    
     START(u8),
     LENGHTH(u8),
     DEVICE_SN(u16),
@@ -106,7 +106,6 @@ pub enum RequestDataList{
     SET_VOL(u16),
     HV_MONI(u16),
     OPEN_SENSOR_MONI(u8),
-
     POWER_CONSUM_MONI(u16),
     L_RESERVED(u32),
     L2_RESERVED(u32),
@@ -259,7 +258,7 @@ impl RequestData {
     //리스트로 반환
     pub fn to_list(&self)->Vec<RequestDataList>
     {
-        let mut list=vec![
+        let list=vec![
             //0
             RequestDataList::START(self.start),
             //1
@@ -303,7 +302,7 @@ impl RequestData {
     }
     //구조체내에 데이터를 계산하고 체크섬변경
     pub fn checksum(&mut self){
-        let mut list = self.to_list();
+        let list = self.to_list();
         let sumdata: u64 =list_add(&list);
         let hex_str = format!("{:#x}",sumdata);
         let test =hex::decode(&hex_str[hex_str.len()-2..]).unwrap();

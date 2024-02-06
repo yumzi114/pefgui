@@ -1,7 +1,6 @@
 # PEFGUI 0.0.4
 
 ## 변경사항
-
 ## 스크린샷
 ### 메인화면
 <img src="https://github.com/yumzi114/pefgui/assets/95202277/dbf76ece-3e4f-4736-95ab-da1e1d3879a2" width="600" height="300">

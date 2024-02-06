@@ -17,6 +17,7 @@ use futures::{ StreamExt, SinkExt};
 
 #[cfg(unix)]
 const DEFAULT_TTY: &str = "/dev/ttyAMA3";
+// const DEFAULT_TTY: &str = "/dev/ttyAMA0";
 fn main() -> Result<(), eframe::Error> {
     //윈도우 사이즈
     let windows = ViewportBuilder{
@@ -54,7 +55,7 @@ fn main() -> Result<(), eframe::Error> {
             });
             //시리얼 통신을 위한 스레드
             let recv = app.app_receiver.clone();
-            let respone_mem= app.response.clone();
+            // let respone_mem= app.response.clone();
             thread::spawn(move||{
                 let rt  = Runtime::new().unwrap();
                 rt.block_on(async {
@@ -88,15 +89,16 @@ fn main() -> Result<(), eframe::Error> {
                     let mut reader =LineCodec.framed(port);
                     loop{
                         thread::sleep(Duration::from_millis(1));
+                        //데이터 수신확인
                         if let Some(line_result)=reader.next().await {
+                            //통신버퍼를 확인
                             if let Ok(datalist)=line_result{
                                 let mut responese_data = RequestData::default();
+                                //데이터 파싱확인
                                 if let Ok(req_data)=responese_data.parser(&datalist){
                                     *respone_mem.lock().unwrap()=req_data;
-                                    if let Err(e)=responese_data.is_checksum(){
-                                        *err_type.lock().unwrap()=ErrorList::CheckSumErr;
-                                    }
-                                    else if let Err(e)=responese_data.check_all(){
+                                    //체크섬과 에러타입을 화인
+                                    if let Err(e)=responese_data.check_all(){
                                         match &e[..] {
                                             "Over Limit"=>{
                                                 *err_type.lock().unwrap()=ErrorList::OverLimit;
@@ -106,6 +108,9 @@ fn main() -> Result<(), eframe::Error> {
                                             },
                                             "CRC Error"=>{
                                                 *err_type.lock().unwrap()=ErrorList::CRCError;
+                                            },
+                                            "Fail checksum Err"=>{
+                                                *err_type.lock().unwrap()=ErrorList::CheckSumErr;
                                             },
                                             _=>{}
                                         }
@@ -161,7 +166,7 @@ impl PEFApp {
         let thread_time = Arc::new(Mutex::new(1));
         let request = RequestData::default();
         let (tx, rx) = unbounded();
-        let mut response=RequestData::default().to_list();
+        let response=RequestData::default().to_list();
         let respon_data = Arc::new(Mutex::new(response));
         let err_type = Arc::new(Mutex::new(ErrorList::default()));
         Self{
