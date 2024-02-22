@@ -3,18 +3,32 @@ use std::sync::{Arc, Mutex};
 
 use super::MenuList;
 use crossbeam_channel::Sender;
-use pefapi::{RequestData,device::{PulseInfo,VolatageInfo}};
+use pefapi::{device::{AppState, PulseInfo, VolatageInfo}, RequestData};
 use eframe::egui::PointerState;
 use eframe::{egui::{Ui, self, InnerResponse, RichText}, epaint::Vec2};
 use tokio_serial::SerialStream;
 use tokio_util::codec::Framed;
 use super::{UserUi};
-pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:&mut VolatageInfo, selmenu:&mut Option<MenuList>, setvalue:&mut String, open:&mut bool, status_str:&mut String,request:&mut RequestData,sender:&mut Sender<RequestData>)->InnerResponse<()>{
+pub fn keypad_view(
+    ui: &mut Ui,
+    ctx: &egui::Context, 
+    pulse:&mut PulseInfo, 
+    volat:&mut VolatageInfo, 
+    selmenu:&mut Option<MenuList>, 
+    setvalue:&mut String, 
+    open:&mut bool, 
+    status_str:&mut String,
+    request:&mut RequestData,
+    sender:&mut Sender<RequestData>,
+    app_state:&mut Arc<Mutex<AppState>>,
+)->InnerResponse<()>{
+    let app_state_mem = app_state.clone();
     let title = match selmenu {
         Some(MenuList::SetVoltage)=>"High Voltage Set",
         Some(MenuList::PulseFreq)=>"Pulse Frequency Set",
         Some(MenuList::PulseOffTime)=>"Pulse OFF_Time Set",
         Some(MenuList::PulseOnTime)=>"Pulse ON_Time Set",
+        Some(MenuList::RunningTime)=>"App Runtime Set",
         _=>""
     };
     // let status_mem = status_str.clone();
@@ -77,7 +91,6 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                     if ui.add(egui::Button::new(RichText::new("Set").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
                             Some(MenuList::PulseFreq)=>{
-                                
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >1000.0){
                                     *status_str="Limit value (0 ~ 1000 Hz)".to_string();
                                     setvalue.clear();
@@ -110,6 +123,20 @@ pub fn keypad_view(ui: &mut Ui,ctx: &egui::Context, pulse:&mut PulseInfo, volat:
                                     pulse.on_time_value=num.parse::<f32>().unwrap_or(0.);
                                     pulse.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", pulse.on_time_value.to_string());
+                                    setvalue.clear();
+                                }
+                            },
+                            Some(MenuList::RunningTime)=>{
+                                if (setvalue.parse::<u16>().unwrap_or(0) >5000){
+                                    *status_str="Limit value (0 ~ 5000M)".to_string();
+                                    setvalue.clear();
+                                }else {
+                                    let num = format!("{:.00}", setvalue.parse::<f32>().unwrap_or(0.));
+                                    // (*app_state_mem.lock().unwrap()).set_time=Some(15);
+                                    (*app_state_mem.lock().unwrap()).set_time=num.parse::<u16>().unwrap_or(0);
+                                    (*app_state_mem.lock().unwrap()).limit_time=num.parse::<u16>().unwrap_or(0);
+                                    // pulse.save(request,sender);
+                                    *status_str=format!("Set Done Value : {} ", num.to_string());
                                     setvalue.clear();
                                 }
                             },

@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use eframe::{egui::{self, InnerResponse, RichText, Sense, Ui}, epaint::{Color32, Vec2}};
 use egui_extras::{Column, TableBuilder};
-use pefapi::RequestDataList;
+use pefapi::{device::AppState, RequestDataList};
 
 use super::UserUi;
 
@@ -10,9 +10,12 @@ pub fn main_view(
     ui: &mut Ui,
     ctx: &egui::Context,
     uui:&mut UserUi, 
-    response:&Arc<Mutex<Vec<RequestDataList>>>
+    response:&Arc<Mutex<Vec<RequestDataList>>>,
+    sys_time:&Arc<Mutex<String>>,
+    app_state:&mut Arc<Mutex<AppState>>,
 )->InnerResponse<()>{
     let mem = response.clone();
+    let app_state_mem = app_state.clone();
     ui.vertical_centered(|ui|{
         ui.add_space(20.);
         ui.label(RichText::new("Information").strong().size(100.0).color(Color32::from_rgb(38, 150, 255)));
@@ -99,7 +102,7 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = if mem.lock().unwrap()[6]==RequestDataList::HV_ONOFF(1){"ON"}else{"OFF"};
+                                let value = if mem.lock().unwrap()[10]==RequestDataList::HV_ONOFF(1){"ON"}else{"OFF"};
                                 ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
@@ -115,7 +118,7 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = format!("{}",mem.lock().unwrap()[8]);
+                                let value = format!("{}",mem.lock().unwrap()[11]);
                                 ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
@@ -161,7 +164,26 @@ pub fn main_view(
                             row.col(|ui| {
                                 ui.add_space(15.);
                                 // let value = format!("{}",mem.lock().unwrap()[14]);
-                                ui.label(RichText::new("test").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                if (*app_state_mem.lock().unwrap()).set_time>0{
+                                    ui.label(RichText::new(
+                                        (*app_state_mem.lock().unwrap()).get_set_time_fmt()
+                                        // format!("{}",(*app_state_mem.lock().unwrap()).set_time.to_string())
+                                    ).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                }
+                                else {
+                                    ui.label(RichText::new("None").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                }
+                                // match (*app_state_mem.lock().unwrap()).set_time {
+                                //     Some(time)=>{
+                                //         ui.label(RichText::new(
+                                //             format!("{}",time.to_string())
+                                //         ).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                //     },
+                                //     None=>{
+                                //         ui.label(RichText::new("None").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                //     }
+                                // }
+                                
                             });
                             if row.response().drag_released(){
                                 uui.table_sel[7]=!uui.table_sel[7]
@@ -175,7 +197,39 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                ui.label(RichText::new("test").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                if (*app_state_mem.lock().unwrap()).limit_time>0{
+                                    ui.label(RichText::new(
+                                        (*app_state_mem.lock().unwrap()).get_limit_time_fmt()
+                                    ).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                }
+                                else {
+                                    ui.label(RichText::new("None").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                }
+                                // match (*app_state_mem.lock().unwrap()).limit_time {
+                                //     0<...=>{
+                                //         ui.label(RichText::new(
+                                //             format!("{}",time.to_string())
+                                //         ).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                //     },
+                                //     None=>{
+                                //         ui.label(RichText::new("None").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                //     }
+                                // }
+                            });
+                            if row.response().drag_released(){
+                                uui.table_sel[8]=!uui.table_sel[8]
+                            };
+                        });
+                        body.row(80.0, |mut row| {
+                            // row.index()
+                            row.set_selected(uui.table_sel[8]);
+                            row.col(|ui| {
+                                ui.label(RichText::new("Running\ntest").strong().size(38.0).color(Color32::from_rgb(247, 104, 42)));
+                            });
+                            row.col(|ui| {
+                                ui.add_space(15.);
+                                
+                                ui.label(RichText::new(sys_time.lock().unwrap().as_str()).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
                                 uui.table_sel[8]=!uui.table_sel[8]

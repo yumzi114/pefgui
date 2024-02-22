@@ -1,10 +1,10 @@
-use std::sync::{Arc,Mutex};
+use std::{fmt::format, sync::{Arc,Mutex}};
 
 use crossbeam_channel::Sender;
 use eframe::{egui::{Ui, self, InnerResponse, RichText, Sense, TextFormat, PointerState, Widget}, epaint::{Vec2, Color32, text::{LayoutJob, TextWrapping}, FontId, Pos2, vec2}};
 use egui_extras::{TableBuilder, Column};
-use pefapi::{LineCodec, RequestData, RequestDataList};
-use super::{UserUi,MenuList,PulseInfo,VolatageInfo};
+use pefapi::{device::AppState, LineCodec, RequestData, RequestDataList};
+use super::{UserUi,MenuList,PulseInfo,VolatageInfo,};
 use crate::{keypad_view};
 pub fn content_view(
     ui: &mut Ui,
@@ -14,10 +14,12 @@ pub fn content_view(
     vol_info:&mut VolatageInfo,
     request:&mut RequestData, 
     sender:&mut Sender<RequestData>,
-    response:&Arc<Mutex<Vec<RequestDataList>>>
+    response:&Arc<Mutex<Vec<RequestDataList>>>,
+    app_state:&mut Arc<Mutex<AppState>>,
+    // sys_time:&Arc<Mutex<String>>
 )->InnerResponse<()>{
-
     let mem = response.clone();
+    let app_state_mem = app_state.clone();
     ui.vertical_centered(|ui|{
         ui.columns(2, |columns|{
             //좌측패널 컴퍼넌트
@@ -75,18 +77,35 @@ pub fn content_view(
                         ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                     columns[1].vertical_centered_justified(|ui|{
-                        ui.label(RichText::new("Runing Time").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        ui.label(RichText::new("Running Time").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
-                            let b_response = button_respone(ui, uui, &MenuList::PulseOffTime, format!("{} ms",pulse_info.off_time_value.to_string()));
+                            let b_response = button_respone(ui, uui, &MenuList::RunningTime, format!("{} ms",pulse_info.off_time_value.to_string()));
                             if b_response.clicked(){
                                 uui.set_value.clear();
-                                uui.status_str="Pulse OFF_TIME Setting".to_string();
+                                uui.status_str="App Run Time Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
-                                click_voltage(uui,MenuList::PulseOffTime,pos);
+                                click_voltage(uui,MenuList::RunningTime,pos);
                             }
                         });
-                        ui.label(RichText::new("Device : ").strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        if (*app_state_mem.lock().unwrap()).set_time>0{
+                            ui.label(RichText::new(
+                                format!("Set Time : {}",(*app_state_mem.lock().unwrap()).set_time.to_string())
+                            ).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        }
+                        else {
+                            ui.label(RichText::new("Set Time : None").strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        }
+                        // match (*app_state_mem.lock().unwrap()).set_time {
+                        //     Some(time)=>{
+                        //         ui.label(RichText::new(
+                        //             format!("Set Time : {}",time.to_string())
+                        //         ).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        //     },
+                        //     None=>{
+                        //         ui.label(RichText::new("Set Time : None").strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        //     }
+                        // }
                     });
                 });
             });
@@ -182,7 +201,19 @@ pub fn content_view(
                     
                 }else {
                     ui.add_space(50.);
-                    keypad_view(ui, ctx, pulse_info, vol_info, &mut uui.keypad.sellist, &mut uui.set_value, &mut uui.keypad.popon, &mut uui.status_str,request,sender);
+                    keypad_view(
+                        ui, 
+                        ctx, 
+                        pulse_info, 
+                        vol_info, 
+                        &mut uui.keypad.sellist, 
+                        &mut uui.set_value, 
+                        &mut uui.keypad.popon, 
+                        &mut uui.status_str,
+                        request,
+                        sender,
+                        app_state
+                    );
                 }
             });
         })

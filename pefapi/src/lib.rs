@@ -203,7 +203,6 @@ pub struct RequestData{
 impl RequestData {
     //변경된 값을 구조체에서 변경
     pub fn into_change_value(&mut self, change_value:ChageList){
-        
         let c_value:u16 = match change_value {
             ChageList::HighVolValue=>0b0000_0010_0000_0000,
             ChageList::PulseFreq=>0b1000_0000_0000_0000,

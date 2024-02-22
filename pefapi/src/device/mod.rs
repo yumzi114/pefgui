@@ -2,6 +2,66 @@ use serde_derive::{Serialize, Deserialize};
 use super::{ChageList,RequestData};
 use crossbeam_channel::{Sender};
 #[derive(PartialEq, Serialize, Deserialize,Clone,Copy)]
+pub struct AppState{
+    pub set_time:u16,
+    pub limit_time:u16,
+}
+impl ::std::default::Default for AppState {
+    fn default() -> Self { 
+        Self{
+            set_time: 0,
+            limit_time: 0,
+        }
+    }
+}
+impl AppState {
+    pub fn get_set_time_fmt(&self)->String{
+        let time = self.set_time.checked_div(60);
+        match time {
+            Some(num)=>{
+                if num==0{
+                    return format!("{}M",self.set_time)    
+                }
+                let m_time = self.set_time-(num*60);
+                return format!("{}H {}M",num,m_time)
+            },
+            None=>{ 
+                // format!("{}",self.set_time).as_str()
+                return format!("{}",self.set_time)
+            }
+        }
+        
+    }
+    pub fn get_limit_time_fmt(&self)->String{
+        let time = self.limit_time.checked_div(60);
+        match time {
+            Some(num)=>{
+                if num==0{
+                    return format!("{}M",self.limit_time)    
+                }
+                let m_time = self.limit_time-(num*60);
+                return format!("{}H {}M",num,m_time)
+            },
+            None=>{ 
+                // format!("{}",self.set_time).as_str()
+                return format!("{}",self.limit_time)
+            }
+        }
+        
+    }
+    // pub fn get_limit_time_fmt()->&str{
+
+    // }
+    // pub fn set_time_save(&mut self,value:Option<u16>){
+    //     self.set_time=value;
+    //     confy::store("pefapp", "appstate", self).unwrap();
+    // }
+    // pub fn limit_time_save(&mut self,value:Option<u16>){
+    //     self.limit_time=value;
+    //     confy::store("pefapp", "appstate", self).unwrap();
+    // }
+}
+#[derive(PartialEq, Serialize, Deserialize,Clone,Copy)]
 pub struct VolatageInfo{
     pub power:bool,
     pub value:f32,
