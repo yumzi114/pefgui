@@ -131,7 +131,7 @@ pub fn keypad_view(
                                     *status_str="Limit value (0 ~ 5000M)".to_string();
                                     setvalue.clear();
                                 }else {
-                                    let num = format!("{:.00}", setvalue.parse::<f32>().unwrap_or(0.));
+                                    let num = format!("{}", setvalue.parse::<u16>().unwrap_or(0));
                                     // (*app_state_mem.lock().unwrap()).set_time=Some(15);
                                     (*app_state_mem.lock().unwrap()).set_time=num.parse::<u16>().unwrap_or(0);
                                     (*app_state_mem.lock().unwrap()).limit_time=num.parse::<u16>().unwrap_or(0);

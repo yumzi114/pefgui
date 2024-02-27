@@ -10,7 +10,7 @@ mod applog;
 use crossbeam_channel::{unbounded,Receiver,Sender};
 use interface::{UserUi,keypad::keypad_view};
 use pefapi::{{ChageList},device::{PulseInfo,VolatageInfo, AppState}, LineCodec, RequestData, RequestDataList};
-use tokio::runtime::Runtime;
+use tokio::{runtime::Runtime, time};
 use tokio_serial::{StopBits, SerialPortBuilderExt, SerialPort};
 use tokio_util::codec::Decoder;
 use futures::{ StreamExt, SinkExt};
@@ -73,19 +73,36 @@ fn main() -> Result<(), eframe::Error> {
             });
             //작업시간타이머
             let app_state_mem = app.app_state.clone();
+            let app_state_rec = app.state_receiver.clone();
             thread::spawn(move||{
                 loop{
+                    if let Ok(mut app_state)=app_state_rec.try_recv(){
+                        let mut time:usize = 0;
+                        if app_state.limit_time!=0||app_state.set_time!=0{
+                            thread::sleep(Duration::from_secs(1));
+                            time+=1;
+                            if time ==60{
+                                app_state.limit_time-=1;
+                                (*app_state_mem.lock().unwrap())=app_state;
+                                time=0;
+                            }else {
+                                continue;
+                            }
+                        }
+                    }
                     if (*app_state_mem.lock().unwrap()).limit_time!=0{
-                        let mut num = (*app_state_mem.lock().unwrap()).limit_time;
-                        thread::sleep(Duration::from_secs(60));
+                        let num = (*app_state_mem.lock().unwrap()).limit_time;
+                        
                         match  num.checked_sub(1){
                             Some(time)=>{
                                 (*app_state_mem.lock().unwrap()).limit_time=time;
-                                if time==0{
-                                    (*app_state_mem.lock().unwrap()).set_time=time;
-                                }
+                                // if time==0{
+                                //     (*app_state_mem.lock().unwrap()).limit_time=time;
+                                // }
                             },
                             _=>{
+                                (*app_state_mem.lock().unwrap()).set_time=0;
+                                (*app_state_mem.lock().unwrap()).limit_time=0;
                                 // num=0;
                                 // (*app_state_mem.lock().unwrap()).limit_time=num;
                                 // (*app_state_mem.lock().unwrap()).set_time=num;
@@ -168,7 +185,6 @@ fn main() -> Result<(), eframe::Error> {
                                             _=>{}
                                         }
                                     }
-                                    
                                     else {
                                         *err_type.lock().unwrap()=ErrorList::None;
                                     }
@@ -179,7 +195,6 @@ fn main() -> Result<(), eframe::Error> {
                 });
                     
             });
-            
             Box::<PEFApp>::new(app)
         }),
     )
@@ -199,13 +214,15 @@ struct PEFApp {
     mainui:UserUi,
     voltage:VolatageInfo,
     PulseInfo:PulseInfo,
-    app_state:Arc<Mutex<AppState>>,
     thread_time:Arc<Mutex<usize>>,
     // run_time:Arc<Mutex<Option<u16>>>,
     request:RequestData,
-    //스레드로 데이터전송을위한 앱채널
+    //송신스레드로 데이터전송을위한 앱채널
     app_sender:Sender<RequestData>,
     app_receiver:Receiver<RequestData>,
+    app_state:Arc<Mutex<AppState>>,
+    state_sender:Sender<AppState>,
+    state_receiver:Receiver<AppState>,
     response:Arc<Mutex<Vec<RequestDataList>>>,
     err_type:Arc<Mutex<ErrorList>>,
     sys_time:Arc<Mutex<String>>,
@@ -224,6 +241,7 @@ impl PEFApp {
         let thread_time = Arc::new(Mutex::new(1));
         let request = RequestData::default();
         let (tx, rx) = unbounded();
+        let (state_sender, state_receiver) = unbounded();
         let response=RequestData::default().to_list();
         let respon_data = Arc::new(Mutex::new(response));
         let err_type = Arc::new(Mutex::new(ErrorList::default()));
@@ -239,6 +257,8 @@ impl PEFApp {
             app_sender:tx,
             app_receiver:rx,
             response:respon_data,
+            state_sender,
+            state_receiver,
             err_type,
             sys_time
         }
@@ -271,6 +291,7 @@ fn setup_custom_fonts(ctx: &egui::Context) {
         "my_font".to_owned(),
         egui::FontData::from_static(include_bytes!(
             "../files/Pilseung_Gothic.ttf"
+            // "../files/FULLDOZER Extra Bold.ttf"
         )),
     );
     fonts

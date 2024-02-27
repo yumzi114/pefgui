@@ -50,7 +50,6 @@ pub struct UserUi{
     pub status_str:String,
     pub view_menu:ViewList,
     pub table_sel:Vec<bool>,
-    
 }
 impl ::std::default::Default for UserUi {
     fn default() -> Self { 
@@ -60,7 +59,6 @@ impl ::std::default::Default for UserUi {
             status_str:String::new(),
             view_menu:ViewList::default(),
             table_sel:vec![false,false,false,false,false,false,false,false,false],
-            
         }
     }
 }

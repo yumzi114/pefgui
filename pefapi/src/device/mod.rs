@@ -30,7 +30,6 @@ impl AppState {
                 return format!("{}",self.set_time)
             }
         }
-        
     }
     pub fn get_limit_time_fmt(&self)->String{
         let time = self.limit_time.checked_div(60);
@@ -40,7 +39,7 @@ impl AppState {
                     return format!("{}M",self.limit_time)    
                 }
                 let m_time = self.limit_time-(num*60);
-                return format!("{}H {}M",num,m_time)
+                    return format!("{}H {}M",num,m_time)
             },
             None=>{ 
                 // format!("{}",self.set_time).as_str()
