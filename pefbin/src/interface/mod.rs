@@ -50,6 +50,8 @@ pub struct UserUi{
     pub status_str:String,
     pub view_menu:ViewList,
     pub table_sel:Vec<bool>,
+    pub warning_pop:bool,
+    
 }
 impl ::std::default::Default for UserUi {
     fn default() -> Self { 
@@ -59,6 +61,7 @@ impl ::std::default::Default for UserUi {
             status_str:String::new(),
             view_menu:ViewList::default(),
             table_sel:vec![false,false,false,false,false,false,false,false,false],
+            warning_pop:false,
         }
     }
 }
@@ -85,7 +88,7 @@ impl UserUi {
         egui::panel::CentralPanel::default().show(ctx, |ui| {
             match self.view_menu {
                 ViewList::Setting=>{
-                    content::content_view(ui, ctx,self,pulse_info,vol_info,request,sender,response,app_state);
+                    content::setting_view(ui, ctx,self,pulse_info,vol_info,request,sender,response,app_state);
                 },
                 ViewList::Main=>{
                     main_view::main_view(ui, ctx, self,response,sys_time,app_state);
@@ -93,9 +96,9 @@ impl UserUi {
             }
         })
     }
-    pub fn bottom_view(&mut self,ui: &mut Ui,ctx: &egui::Context, mem:&Arc<Mutex<usize>>,err_type:&Arc<Mutex<ErrorList>>)->InnerResponse<()>{
+    pub fn bottom_view(&mut self,ui: &mut Ui,ctx: &egui::Context, mem:&Arc<Mutex<usize>>,err_type:&Arc<Mutex<ErrorList>>,app_state:&mut Arc<Mutex<AppState>>)->InnerResponse<()>{
         egui::containers::panel::TopBottomPanel::bottom("bottom_view").show_separator_line(false).show(ctx, |ui| {
-            bottom_bar::bottom_view(ui, ctx,mem, self,err_type);
+            bottom_bar::bottom_view(ui, ctx,mem, self,err_type,app_state);
         })
     }
     

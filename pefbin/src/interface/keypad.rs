@@ -21,8 +21,8 @@ pub fn keypad_view(
     request:&mut RequestData,
     sender:&mut Sender<RequestData>,
     app_state:&mut Arc<Mutex<AppState>>,
+    warring_open:&mut bool,
 )->InnerResponse<()>{
-    let app_state_mem = app_state.clone();
     let title = match selmenu {
         Some(MenuList::SetVoltage)=>"High Voltage Set",
         Some(MenuList::PulseFreq)=>"Pulse Frequency Set",
@@ -82,9 +82,19 @@ pub fn keypad_view(
                 if ui.add(egui::Button::new(RichText::new("3").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('3');
                 }
-                if ui.add(egui::Button::new(RichText::new(".").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
-                    setvalue.push('.');
+                match selmenu {
+                    Some(MenuList::RunningTime)=>{
+                        if ui.add(egui::Button::new(RichText::new("").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
+                            // setvalue.push('.');
+                        }
+                    },
+                    _=>{
+                        if ui.add(egui::Button::new(RichText::new(".").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
+                            setvalue.push('.');
+                        }
+                    }
                 }
+                
             });
             columns[3].vertical_centered_justified(|ui|{
                 ui.horizontal_wrapped(|ui|{
@@ -93,6 +103,7 @@ pub fn keypad_view(
                             Some(MenuList::PulseFreq)=>{
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >1000.0){
                                     *status_str="Limit value (0 ~ 1000 Hz)".to_string();
+                                    *warring_open=true;
                                     setvalue.clear();
                                 }else {
                                     let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
@@ -105,6 +116,7 @@ pub fn keypad_view(
                             Some(MenuList::PulseOffTime)=>{
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
                                     *status_str="Limit value (0 ~ 100 ms)".to_string();
+                                    *warring_open=true;
                                     setvalue.clear();
                                 }else {
                                     let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
@@ -117,6 +129,7 @@ pub fn keypad_view(
                             Some(MenuList::PulseOnTime)=>{
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
                                     *status_str="Limit value (0 ~ 100 ms)".to_string();
+                                    *warring_open=true;
                                     setvalue.clear();
                                 }else {
                                     let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
@@ -129,12 +142,19 @@ pub fn keypad_view(
                             Some(MenuList::RunningTime)=>{
                                 if (setvalue.parse::<u16>().unwrap_or(0) >5000){
                                     *status_str="Limit value (0 ~ 5000M)".to_string();
+                                    *warring_open=true;
                                     setvalue.clear();
                                 }else {
                                     let num = format!("{}", setvalue.parse::<u16>().unwrap_or(0));
                                     // (*app_state_mem.lock().unwrap()).set_time=Some(15);
-                                    (*app_state_mem.lock().unwrap()).set_time=num.parse::<u16>().unwrap_or(0);
-                                    (*app_state_mem.lock().unwrap()).limit_time=num.parse::<u16>().unwrap_or(0);
+                                    // let app_state_mem = app_state.clone();
+                                    let mut temp = (*app_state.lock().unwrap()).clone();
+                                    temp.set_time=num.parse::<u16>().unwrap_or(0);
+                                    temp.limit_time=num.parse::<u16>().unwrap_or(0);
+                                    // let ddd = app_state.lock().unwrap().clone();
+                                    *app_state.lock().unwrap()=temp;
+                                    // sender.send(temp).unwrap();
+                                    
                                     // pulse.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", num.to_string());
                                     setvalue.clear();
@@ -143,6 +163,7 @@ pub fn keypad_view(
                             Some(MenuList::SetVoltage)=>{
                                 if (setvalue.parse::<f32>().unwrap_or(0.) >20.0){
                                     *status_str="Limit value (0 ~ 20 Kv)".to_string();
+                                    *warring_open=true;
                                     setvalue.clear();
                                 }else {
                                     let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
@@ -155,7 +176,7 @@ pub fn keypad_view(
                             _=>{}
                         }
                     }
-                    if ui.add(egui::Button::new(RichText::new("Cancel").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
+                    if ui.add(egui::Button::new(RichText::new("Cancel").color(egui::Color32::BLACK).strong().size(40.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
                             Some(_)=>{
                                 setvalue.clear();

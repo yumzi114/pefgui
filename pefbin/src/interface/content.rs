@@ -6,7 +6,7 @@ use egui_extras::{TableBuilder, Column};
 use pefapi::{device::AppState, LineCodec, RequestData, RequestDataList};
 use super::{UserUi,MenuList,PulseInfo,VolatageInfo,};
 use crate::{keypad_view};
-pub fn content_view(
+pub fn setting_view(
     ui: &mut Ui,
     ctx: &egui::Context,
     uui:&mut UserUi, 
@@ -20,6 +20,9 @@ pub fn content_view(
 )->InnerResponse<()>{
     let mem = response.clone();
     let app_state_mem = app_state.clone();
+    if uui.warning_pop{
+        ui.set_enabled(false);
+    }
     ui.vertical_centered(|ui|{
         ui.columns(2, |columns|{
             //좌측패널 컴퍼넌트
@@ -27,7 +30,7 @@ pub fn content_view(
                 ui.add_space(100.);
                 ui.columns(2, |columns|{
                     columns[0].vertical_centered_justified(|ui|{
-                        ui.label(RichText::new("High Voltage").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        ui.label(RichText::new("High Voltage").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
                             let b_response = button_respone(ui, uui, &MenuList::SetVoltage, format!("{} Kv",vol_info.value.to_string()));
@@ -43,7 +46,7 @@ pub fn content_view(
                         ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                     columns[1].vertical_centered_justified(|ui|{
-                        ui.label(RichText::new("Pulse Frequency").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        ui.label(RichText::new("Pulse Frequency").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
                             let b_response: egui::Response = button_respone(ui, uui, &MenuList::PulseFreq, format!("{} Hz",pulse_info.freq_value.to_string()));
@@ -59,10 +62,10 @@ pub fn content_view(
                     });
                 });
                 ui.add_space(60.);
-                ui.label(RichText::new("Time Value").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                ui.label(RichText::new("Time Value").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                 ui.columns(2, |columns|{
                     columns[0].vertical_centered_justified(|ui|{
-                        ui.label(RichText::new("Pulse Time").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        ui.label(RichText::new("Pulse Time").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
                             let b_response = button_respone(ui, uui, &MenuList::PulseOnTime, format!("{} ms",pulse_info.on_time_value.to_string()));
@@ -77,10 +80,10 @@ pub fn content_view(
                         ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                     columns[1].vertical_centered_justified(|ui|{
-                        ui.label(RichText::new("Running Time").strong().size(50.0).color(Color32::from_rgb(38, 150, 255)));
+                        ui.label(RichText::new("Running Time").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
-                            let b_response = button_respone(ui, uui, &MenuList::RunningTime, format!("{} ms",pulse_info.off_time_value.to_string()));
+                            let b_response = button_respone(ui, uui, &MenuList::RunningTime, format!("{} M",(*app_state_mem.lock().unwrap()).set_time.to_string()));
                             if b_response.clicked(){
                                 uui.set_value.clear();
                                 uui.status_str="App Run Time Setting".to_string();
@@ -90,7 +93,7 @@ pub fn content_view(
                         });
                         if (*app_state_mem.lock().unwrap()).set_time>0{
                             ui.label(RichText::new(
-                                format!("Set Time : {}",(*app_state_mem.lock().unwrap()).set_time.to_string())
+                                format!("Limit Time : {}",(*app_state_mem.lock().unwrap()).limit_time.to_string())
                             ).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                         }
                         else {
@@ -212,7 +215,8 @@ pub fn content_view(
                         &mut uui.status_str,
                         request,
                         sender,
-                        app_state
+                        app_state,
+                        &mut uui.warning_pop
                     );
                 }
             });

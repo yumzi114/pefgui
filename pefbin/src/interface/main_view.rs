@@ -15,7 +15,8 @@ pub fn main_view(
     app_state:&mut Arc<Mutex<AppState>>,
 )->InnerResponse<()>{
     let mem = response.clone();
-    let app_state_mem = app_state.clone();
+    // let app_state_mem = app_state.clone();
+    uui.keypad.popon=false;
     ui.vertical_centered(|ui|{
         ui.add_space(20.);
         ui.label(RichText::new("Information").strong().size(100.0).color(Color32::from_rgb(38, 150, 255)));
@@ -34,12 +35,12 @@ pub fn main_view(
                             row.set_selected(uui.table_sel[0]);
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                ui.label(RichText::new("Device S/N").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new("Device S/N").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
                                 let value = format!("{}",mem.lock().unwrap()[2]);
-                                ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
                                 uui.table_sel[0]=!uui.table_sel[0]
@@ -50,12 +51,12 @@ pub fn main_view(
                             row.set_selected(uui.table_sel[1]);
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                ui.label(RichText::new("Pulse").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new("Pulse").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
                                 let value = if mem.lock().unwrap()[6]==RequestDataList::PULSE_ONOFF(1){"ON"}else{"OFF"};
-                                ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
                                 uui.table_sel[1]=!uui.table_sel[1]
@@ -66,12 +67,12 @@ pub fn main_view(
                             row.set_selected(uui.table_sel[2]);
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                ui.label(RichText::new("Pulse Frequency").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new("Pulse Frequency").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
                                 let value = format!("{}",mem.lock().unwrap()[7]);
-                                ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
                                 uui.table_sel[2]=!uui.table_sel[2]
@@ -82,12 +83,12 @@ pub fn main_view(
                             row.set_selected(uui.table_sel[3]);
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                ui.label(RichText::new("Pulse Times").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new("Pulse Times").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
                                 let value = format!("{}",mem.lock().unwrap()[8]);
-                                ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
                                 uui.table_sel[3]=!uui.table_sel[3]
@@ -98,12 +99,12 @@ pub fn main_view(
                             row.set_selected(uui.table_sel[4]);
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                ui.label(RichText::new("High Voltage").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new("High Voltage").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
                                 let value = if mem.lock().unwrap()[10]==RequestDataList::HV_ONOFF(1){"ON"}else{"OFF"};
-                                ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
                                 uui.table_sel[4]=!uui.table_sel[4]
@@ -114,12 +115,12 @@ pub fn main_view(
                             row.set_selected(uui.table_sel[5]);
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                ui.label(RichText::new("Voltage Value").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new("Voltage Value").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
                                 let value = format!("{}",mem.lock().unwrap()[11]);
-                                ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
                                 uui.table_sel[5]=!uui.table_sel[5]
@@ -164,26 +165,15 @@ pub fn main_view(
                             row.col(|ui| {
                                 ui.add_space(15.);
                                 // let value = format!("{}",mem.lock().unwrap()[14]);
-                                if (*app_state_mem.lock().unwrap()).set_time>0{
+                                if (*app_state.lock().unwrap()).set_time>0{
                                     ui.label(RichText::new(
-                                        (*app_state_mem.lock().unwrap()).get_set_time_fmt()
+                                        (*app_state.lock().unwrap()).get_set_time_fmt()
                                         // format!("{}",(*app_state_mem.lock().unwrap()).set_time.to_string())
                                     ).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
                                 }
                                 else {
                                     ui.label(RichText::new("None").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
                                 }
-                                // match (*app_state_mem.lock().unwrap()).set_time {
-                                //     Some(time)=>{
-                                //         ui.label(RichText::new(
-                                //             format!("{}",time.to_string())
-                                //         ).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
-                                //     },
-                                //     None=>{
-                                //         ui.label(RichText::new("None").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
-                                //     }
-                                // }
-                                
                             });
                             if row.response().drag_released(){
                                 uui.table_sel[7]=!uui.table_sel[7]
@@ -197,39 +187,14 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                if (*app_state_mem.lock().unwrap()).limit_time>0{
+                                if (*app_state.lock().unwrap()).limit_time>0{
                                     ui.label(RichText::new(
-                                        (*app_state_mem.lock().unwrap()).get_limit_time_fmt()
+                                        (*app_state.lock().unwrap()).get_limit_time_fmt()
                                     ).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
                                 }
                                 else {
                                     ui.label(RichText::new("None").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
                                 }
-                                // match (*app_state_mem.lock().unwrap()).limit_time {
-                                //     0<...=>{
-                                //         ui.label(RichText::new(
-                                //             format!("{}",time.to_string())
-                                //         ).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
-                                //     },
-                                //     None=>{
-                                //         ui.label(RichText::new("None").strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
-                                //     }
-                                // }
-                            });
-                            if row.response().drag_released(){
-                                uui.table_sel[8]=!uui.table_sel[8]
-                            };
-                        });
-                        body.row(80.0, |mut row| {
-                            // row.index()
-                            row.set_selected(uui.table_sel[8]);
-                            row.col(|ui| {
-                                ui.label(RichText::new("Running\ntest").strong().size(38.0).color(Color32::from_rgb(247, 104, 42)));
-                            });
-                            row.col(|ui| {
-                                ui.add_space(15.);
-                                
-                                ui.label(RichText::new(sys_time.lock().unwrap().as_str()).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
                                 uui.table_sel[8]=!uui.table_sel[8]
