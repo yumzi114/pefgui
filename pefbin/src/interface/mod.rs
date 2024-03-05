@@ -88,7 +88,7 @@ impl UserUi {
         egui::panel::CentralPanel::default().show(ctx, |ui| {
             match self.view_menu {
                 ViewList::Setting=>{
-                    content::setting_view(ui, ctx,self,pulse_info,vol_info,request,sender,response,app_state);
+                    content::setting_view(ui, ctx,self,pulse_info,vol_info,request,sender,response,app_state,);
                 },
                 ViewList::Main=>{
                     main_view::main_view(ui, ctx, self,response,sys_time,app_state);

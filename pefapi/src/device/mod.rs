@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use serde_derive::{Serialize, Deserialize};
 use super::{ChageList,RequestData};
 use crossbeam_channel::{Sender};
@@ -93,6 +95,7 @@ impl ::std::default::Default for PulseInfo {
 }
 //각각 구조체별로 변경사항을 체크하고 변경사항이 있을 경우, 파일로 저장 및 데이터처리
 impl PulseInfo {
+    
     pub fn save(&self, req_data:&mut RequestData, sender:&mut Sender<RequestData>){
         let file_PulseInfo:PulseInfo = confy::load("pefapp", "pulse").unwrap();
         
@@ -106,10 +109,12 @@ impl PulseInfo {
             
             match value {Some(value)=>{
                 confy::store("pefapp", "pulse", self).unwrap();
+                // (*socket_req.lock().unwrap()).into_change_value(value);
                 req_data.into_change_value(value);
-                let data = req_data.clone();
+                // let data = (*socket_req.lock().unwrap()).clone();
+                // *socket_req.lock().unwrap()=req_data.clone();
                 let save_sender = sender.clone();
-                save_sender.send(data).unwrap();
+                save_sender.send(req_data.clone()).unwrap();
             },
                 _=>{}
             }
@@ -130,6 +135,7 @@ impl VolatageInfo {
                     confy::store("pefapp", "vol", self).unwrap();
                     req_data.into_change_value(value);
                     let data = req_data.clone();
+                    // *socket_req.lock().unwrap()=data.clone();
                     let save_sender = sender.clone();
                     save_sender.send(data).unwrap();
                 },

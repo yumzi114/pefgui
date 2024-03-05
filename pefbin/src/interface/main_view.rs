@@ -17,6 +17,7 @@ pub fn main_view(
     let mem = response.clone();
     // let app_state_mem = app_state.clone();
     uui.keypad.popon=false;
+    uui.keypad.sellist=None;
     ui.vertical_centered(|ui|{
         ui.add_space(20.);
         ui.label(RichText::new("Information").strong().size(100.0).color(Color32::from_rgb(38, 150, 255)));

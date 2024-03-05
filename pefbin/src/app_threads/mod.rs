@@ -7,8 +7,10 @@ use crossbeam_channel::{unbounded,Receiver,Sender};
 use tokio::runtime::Runtime;
 use tokio_serial::{SerialPort, SerialPortBuilderExt, StopBits};
 use tokio_util::codec::Decoder;
+use url::Url;
 use std::sync::mpsc::channel;
 use futures_timer::Delay;
+use tungstenite::{connect, Message};
 use crate::app_error::ErrorList;
 
 
@@ -16,7 +18,7 @@ use crate::app_error::ErrorList;
 #[cfg(unix)]
 const DEFAULT_TTY: &'static str = "/dev/ttyAMA3";
 
-const SOCKET_URL: &'static str = "ws://192.168.0.10:8080/socket";
+const SOCKET_URL: &'static str = "wss://yumi.town/socket";
 
 //UI상태변경 스레드
 pub fn ui_timer(mem:Arc<Mutex<usize>>){
@@ -96,8 +98,8 @@ pub fn serial_receiver(
     err_type: Arc<Mutex<ErrorList>>
 ){
     thread::spawn(move||{
-        let test  = Runtime::new().unwrap();
-        test.block_on(async {
+        let task  = Runtime::new().unwrap();
+        task.block_on(async {
             let mut port = tokio_serial::new(DEFAULT_TTY, 115_200).open_native_async().unwrap();
             #[cfg(unix)]
             port.set_stop_bits(StopBits::One).unwrap();
@@ -150,8 +152,43 @@ pub fn serial_receiver(
     });
 }
 //소켓 송신스레드
-pub fn socket_sender(){
-
+pub fn socket_sender(app_state:Arc<Mutex<AppState>>,response:Arc<Mutex<Vec<RequestDataList>>>){
+    let mem = response.clone();
+    let (mut socket, resp) =
+        connect(Url::parse(SOCKET_URL).unwrap()).expect("Can't connect");
+    // let mem = socket_req.clone();
+    thread::spawn(move||{
+        let rt  = Runtime::new().unwrap();
+            rt.block_on(async {
+                loop{
+                    sleep(Duration::from_millis(1));
+                    if (*app_state.lock().unwrap()).limit_time!=0{
+                        let mut name = String::new();
+                        let list =(*response.lock().unwrap()).clone();
+                        for i in list {
+                            name.push_str(format!("{}",i).as_str());
+                        }
+                    //     sleep(Duration::from_secs(5));
+                        // let test = String::from("value");
+                        // let tesdd =test.as_bytes();
+                        // socket.send(Message::binary(tesdd)).unwrap();
+                        // let strt = (*mem.lock().unwrap()).socket_fmt();
+                        // let dd = *socket_req.lock().unwrap();
+                        // let ddd=dd.to_list()[6];
+                        socket.send(Message::Text(name)).unwrap();
+                        // let str = (*response.lock().unwrap())
+                        sleep(Duration::new(5, 0));
+                        continue;
+                    }
+                    //헤어확인시
+                    // for (ref header, _value) in response.headers() {
+                    //     let str = format!("{}",header);
+                    //     socket.send(Message::Text(str)).unwrap();
+                    // }
+                }
+                
+            });
+    });
 }
 
 

@@ -26,6 +26,8 @@ log4rs = "1.2.0"
 chrono = "0.4.33"
 timer = "0.2.0"
 futures-timer = "3.0.3"
+url = "2.5.0"
+tungstenite = {version="0.21",features=["native-tls"]}
 
 
 [dependencies.openssl]

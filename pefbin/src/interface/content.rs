@@ -216,7 +216,7 @@ pub fn setting_view(
                         request,
                         sender,
                         app_state,
-                        &mut uui.warning_pop
+                        &mut uui.warning_pop,
                     );
                 }
             });

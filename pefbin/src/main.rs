@@ -9,7 +9,7 @@ mod app_error;
 mod app_threads;
 use app_error::ErrorList;
 use component::{setup_custom_fonts, warring_window};
-use app_threads::{ui_timer,run_timer,serial_receiver,serial_sender};
+use app_threads::{ui_timer,run_timer,serial_receiver,serial_sender,socket_sender};
 use crossbeam_channel::{unbounded,Receiver,Sender};
 use interface::{UserUi,keypad::keypad_view};
 use pefapi::{device::{PulseInfo,VolatageInfo, AppState}, LineCodec, RequestData, RequestDataList};
@@ -60,7 +60,9 @@ fn main() -> Result<(), eframe::Error> {
             // let sys_time_mem: Arc<Mutex<String>> = app.sys_time.clone();
             // let _handle: log4rs::Handle = log4rs::init_config(logconfig((*sys_time_mem.lock().unwrap()).clone())).unwrap();
             serial_receiver(respone_mem,err_type);
-            
+            let state_mem= app.app_state.clone();
+            let respone_mem= app.response.clone();
+            socket_sender(state_mem,respone_mem);
             Box::<PEFApp>::new(app)
         }),
     )
@@ -95,12 +97,14 @@ impl PEFApp {
         let app_state = Arc::new(Mutex::new(confy::load("pefapp", "appstate").unwrap_or_default()));
         let thread_time = Arc::new(Mutex::new(1));
         let request = RequestData::default();
+        let socket_req = Arc::new(Mutex::new(request));
         let (tx, rx) = unbounded();
         let response=RequestData::default().to_list();
         let respon_data = Arc::new(Mutex::new(response));
         let err_type = Arc::new(Mutex::new(ErrorList::default()));
         let time = chrono::offset::Local::now().format("%Y-%m-%d");
         let sys_time = Arc::new(Mutex::new(format!("{}",time)));
+        
         Self{
             mainui:UserUi::default(),
             voltage,

@@ -4,7 +4,7 @@ use futures::{ StreamExt, SinkExt};
 use tokio_util::codec::{Decoder, Encoder};
 use tokio_serial::{SerialPortBuilderExt, SerialPort, StopBits};
 use bytes::{BytesMut, BufMut};
-use std::{io, str,u8};
+use std::{fmt::Debug, io, str, u8};
 use serde::{Serialize, Deserialize, de::value};
 use serde_hex::{SerHex,StrictPfx,CompactPfx};
 use defaults::Defaults;
@@ -298,6 +298,24 @@ impl RequestData {
             RequestDataList::END(self.end),
         ];
         list
+    }
+    pub fn socket_fmt(&self)->String{
+        let mut fmt_string = String::new();
+        let list = self.to_list();
+        let mut iter = list.iter();
+        if let Some(name)=iter.next(){
+            // let str =format!("{}",name);
+            fmt_string.push_str(&name.to_string()[..]);
+        };
+        // fmt_string.push_str(&list[0].to_string()[..]);
+        for i in iter{
+            let str = format!(",{}",*i);
+            fmt_string.push_str(str.as_str());
+            // let ddd = format!("{}",i);
+        }
+        fmt_string
+        
+        
     }
     //구조체내에 데이터를 계산하고 체크섬변경
     pub fn checksum(&mut self){
