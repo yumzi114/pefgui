@@ -1,5 +1,5 @@
 use core::time;
-use std::{sync::{Arc, Mutex}, thread::{self, sleep}, time::{Duration, Instant, SystemTime}};
+use std::{net::TcpStream, sync::{Arc, Mutex}, thread::{self, sleep}, time::{Duration, Instant, SystemTime}};
 use futures::{SinkExt, StreamExt};
 use log4rs::append::rolling_file::policy::compound::trigger::Trigger;
 use pefapi::{device::AppState, LineCodec, RequestData, RequestDataList};
@@ -10,7 +10,7 @@ use tokio_util::codec::Decoder;
 use url::Url;
 use std::sync::mpsc::channel;
 use futures_timer::Delay;
-use tungstenite::{connect, Message};
+use tungstenite::{connect, stream::MaybeTlsStream, Message, WebSocket};
 use crate::app_error::ErrorList;
 
 
@@ -18,13 +18,30 @@ use crate::app_error::ErrorList;
 #[cfg(unix)]
 const DEFAULT_TTY: &'static str = "/dev/ttyAMA3";
 
-const SOCKET_URL: &'static str = "wss://yumi.town/socket";
+// const SOCKET_URL: &'static str = "wss://yumi.town/socket";
+// const SOCKET_URL: &'static str = "ws://192.168.0.10:8080/socket";
 
-//UI상태변경 스레드
-pub fn ui_timer(mem:Arc<Mutex<usize>>){
+//UI상태변경 스레드/소켓핑
+pub fn ui_timer(
+    socket:Arc<Mutex<Option<WebSocket<MaybeTlsStream<TcpStream>>>>>,
+    // socket_onoff:bool,
+    mem:Arc<Mutex<usize>>
+){
+    // (*socket.lock().unwrap()).
     thread::spawn(move||{
         loop{
             thread::sleep(Duration::from_secs(1));
+            
+            // if let Some(sender)=socket{
+            //     (*sender.lock().unwrap()).send(Message::Ping(vec![1_u8])).unwrap();
+            // }
+            // (*socket.lock().unwrap()).send(Message::Ping(vec![1_u8])).unwrap();
+            // if socket_onoff {
+            //     socket.lock().unwrap().as_mut().unwrap().send(Message::Ping(vec![1_u8])).unwrap();
+            // }
+            if let Some(sender)=(*socket.lock().unwrap()).as_mut(){
+                (*sender).send(Message::Ping(vec![1_u8])).unwrap();
+            }
             if *mem.lock().unwrap()<5{
                 *mem.lock().unwrap()+=1;
             }
@@ -35,7 +52,9 @@ pub fn ui_timer(mem:Arc<Mutex<usize>>){
     });
 }
 //작업시간 타이머스레드
-pub fn run_timer(app_state_mem: Arc<Mutex<AppState>>){
+pub fn run_timer(
+    app_state_mem: Arc<Mutex<AppState>>,
+){
     thread::spawn(move||{
         let rt  = Runtime::new().unwrap();
         rt.block_on(async {
@@ -49,25 +68,28 @@ pub fn run_timer(app_state_mem: Arc<Mutex<AppState>>){
                     *app_state_mem.lock().unwrap()=app_state;
                 }
             }
-            
-            // loop{
-            //     // thread::sleep(Duration::from_nanos(1));
-            //     if let Ok(mut app_state)=app_state_rec.try_recv(){
-            //         *app_state_mem.lock().unwrap()=app_state;
-            //         confy::store("pefapp", "appstate", app_state).unwrap();
-            //         if app_state.limit_time!=0||app_state.set_time!=0{
-            //             thread::sleep(Duration::from_secs(1));
-            //             app_state.limit_time-=1;
-            //             (*app_state_mem.lock().unwrap())=app_state;
-            //             confy::store("pefapp", "appstate", app_state).unwrap();
-            //         }
-            //     }
-            // }
-
         });
-        
     });
 }
+// pub fn run_timer(
+//     app_state_mem: Arc<Mutex<AppState>>,
+// ){
+//     thread::spawn(move||{
+//         let rt  = Runtime::new().unwrap();
+//         rt.block_on(async {
+//             while  (*app_state_mem.lock().unwrap()).limit_time!=0{
+//                 let mut app_state = (*app_state_mem.lock().unwrap()).clone();
+//                 sleep(Duration::new(60, 0));
+//                 app_state.limit_time-=1;
+//                 confy::store("pefapp", "appstate", app_state).unwrap();
+//                 *app_state_mem.lock().unwrap()=app_state;
+//             }
+//         });
+//     });
+// }
+
+
+
 // 시리얼송신 스레드
 pub fn serial_sender(recv: Receiver<RequestData>){
     thread::spawn(move||{
@@ -152,22 +174,39 @@ pub fn serial_receiver(
     });
 }
 //소켓 송신스레드
-pub fn socket_sender(app_state:Arc<Mutex<AppState>>,response:Arc<Mutex<Vec<RequestDataList>>>){
+pub fn socket_sender(
+    socket:Arc<Mutex<Option<WebSocket<MaybeTlsStream<TcpStream>>>>>,
+    app_state:Arc<Mutex<AppState>>,
+    response:Arc<Mutex<Vec<RequestDataList>>>){
     let mem = response.clone();
-    let (mut socket, resp) =
-        connect(Url::parse(SOCKET_URL).unwrap()).expect("Can't connect");
-    // let mem = socket_req.clone();
+    // let (mut socket, resp) =
+    //     connect(Url::parse(SOCKET_URL).unwrap()).expect("Can't connect");
+    // let mem = socket.clone();
+    // let mut dd;
+    // if let Some(soc_mem)=socket{
+    //     dd = soc_mem.clone();
+    // }
     thread::spawn(move||{
         let rt  = Runtime::new().unwrap();
             rt.block_on(async {
                 loop{
                     sleep(Duration::from_millis(1));
+                    
+                    // socket.send(Message::Ping(vec![1_u8])).unwrap();
                     if (*app_state.lock().unwrap()).limit_time!=0{
                         let mut name = String::new();
                         let list =(*response.lock().unwrap()).clone();
                         for i in list {
                             name.push_str(format!("{}",i).as_str());
                         }
+                    // if socket_onoff{
+                    //     socket.lock().unwrap().as_mut().unwrap().send(Message::Text(name)).unwrap();
+                    // }
+                    if let Some(sender)=(*socket.lock().unwrap()).as_mut(){
+                        (*sender).send(Message::Text(name)).unwrap();
+                    }
+                    
+                    
                     //     sleep(Duration::from_secs(5));
                         // let test = String::from("value");
                         // let tesdd =test.as_bytes();
@@ -175,7 +214,13 @@ pub fn socket_sender(app_state:Arc<Mutex<AppState>>,response:Arc<Mutex<Vec<Reque
                         // let strt = (*mem.lock().unwrap()).socket_fmt();
                         // let dd = *socket_req.lock().unwrap();
                         // let ddd=dd.to_list()[6];
-                        socket.send(Message::Text(name)).unwrap();
+                        // if let Some(sender)=socket{
+                        //     // let ad = sender.clone();
+                        //     // sender.lock().unwrap().send
+                        //     // (*sender.lock().unwrap()).send(Message::Text(name)).unwrap();
+                        // }
+                        // (*socket.lock().unwrap()).send(Message::Text(name)).unwrap();
+                        // socket.send(Message::Text(name)).unwrap();
                         // let str = (*response.lock().unwrap())
                         sleep(Duration::new(5, 0));
                         continue;

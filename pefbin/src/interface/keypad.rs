@@ -101,7 +101,7 @@ pub fn keypad_view(
                     if ui.add(egui::Button::new(RichText::new("Set").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
                             Some(MenuList::PulseFreq)=>{
-                                if (setvalue.parse::<f32>().unwrap_or(0.) >1000.0){
+                                if setvalue.parse::<f32>().unwrap_or(0.) >1000.0{
                                     *status_str="Limit value (0 ~ 1000 Hz)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
@@ -114,7 +114,7 @@ pub fn keypad_view(
                                 }
                             },
                             Some(MenuList::PulseOffTime)=>{
-                                if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
+                                if setvalue.parse::<f32>().unwrap_or(0.) >100.0{
                                     *status_str="Limit value (0 ~ 100 ms)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
@@ -127,7 +127,7 @@ pub fn keypad_view(
                                 }
                             },
                             Some(MenuList::PulseOnTime)=>{
-                                if (setvalue.parse::<f32>().unwrap_or(0.) >100.0){
+                                if setvalue.parse::<f32>().unwrap_or(0.) >100.0{
                                     *status_str="Limit value (0 ~ 100 ms)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
@@ -140,7 +140,7 @@ pub fn keypad_view(
                                 }
                             },
                             Some(MenuList::RunningTime)=>{
-                                if (setvalue.parse::<u16>().unwrap_or(0) >5000){
+                                if setvalue.parse::<u16>().unwrap_or(0) >5000{
                                     *status_str="Limit value (0 ~ 5000M)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
@@ -161,7 +161,7 @@ pub fn keypad_view(
                                 }
                             },
                             Some(MenuList::SetVoltage)=>{
-                                if (setvalue.parse::<f32>().unwrap_or(0.) >20.0){
+                                if setvalue.parse::<f32>().unwrap_or(0.) >20.0{
                                     *status_str="Limit value (0 ~ 20 Kv)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();

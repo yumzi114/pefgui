@@ -33,7 +33,7 @@ pub fn setting_view(
                         ui.label(RichText::new("High Voltage").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
-                            let b_response = button_respone(ui, uui, &MenuList::SetVoltage, format!("{} Kv",vol_info.value.to_string()));
+                            let b_response = button_respone(ui, uui, &MenuList::SetVoltage, format!("{} kV",vol_info.value.to_string()));
                             if b_response.clicked(){
                                 uui.set_value.clear();
                                 uui.status_str="Voltage Value Setting".to_string();

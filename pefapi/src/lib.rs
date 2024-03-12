@@ -1,4 +1,5 @@
-
+use byteorder::{ReadBytesExt, WriteBytesExt, BigEndian, LittleEndian};
+use std::io::Cursor;
 
 use futures::{ StreamExt, SinkExt};
 use tokio_util::codec::{Decoder, Encoder};
@@ -185,7 +186,7 @@ pub struct RequestData{
     #[def = "0x00"]
     o_sens_moni:u8,
     #[serde(with = "SerHex::<CompactPfx>")]
-    #[def = "0x0300"]
+    #[def = "0x0000"]
     p_consum_moni:u16,
     #[serde(with = "SerHex::<CompactPfx>")]
     #[def = "0x00000000"]
@@ -204,11 +205,14 @@ impl RequestData {
     //변경된 값을 구조체에서 변경
     pub fn into_change_value(&mut self, change_value:ChageList){
         let c_value:u16 = match change_value {
-            ChageList::HighVolValue=>0b0000_0010_0000_0000,
-            ChageList::PulseFreq=>0b1000_0000_0000_0000,
+            
             ChageList::Pulse_ON_OFF_Time=>0b1000_0000_0000_0000,
-            ChageList::Pulse_ON_OFF=>0b0001_0000_0000_0000,
-            ChageList::HighVol_ON_OFF=>0b0000_0100_0000_0000,
+            //
+            ChageList::Pulse_ON_OFF=>0b0000_0000_1001_0000,
+            ChageList::PulseFreq=>0b0000_0000_0000_1000,
+            ChageList::HighVol_ON_OFF=>0b0000_0000_1000_0010,
+
+            ChageList::HighVolValue=>0b0000_0000_1000_0001,
         };
         self.change_value=c_value;
         self.checksum();
@@ -226,27 +230,56 @@ impl RequestData {
         self.set_vol=vol_info.value as u16;
     }
     pub fn parser(&mut self, buf: &Vec<u8>)->Result<Vec<RequestDataList>,String>{
+        // let mut target = Cursor::new(buf.clone());
+        let adder8 = |num:Vec<u8>|{
+            let mut target = Cursor::new(num);
+            let ddd = target.read_u8().unwrap();
+            ddd
+        };
+        let adder16 = |num:Vec<u8>|{
+            let mut target = Cursor::new(num);
+            let ddd = target.read_u16::<BigEndian>().unwrap();
+            ddd
+        };
+        let adder32 = |num:Vec<u8>|{
+            let mut target = Cursor::new(num);
+            let ddd = target.read_u32::<BigEndian>().unwrap();
+            ddd
+        };
+        
         if buf.len()==36{
             self.start=buf[0] as u8;
             self.length=buf[1] as u8;
-            self.device_sn=u16::from_be_bytes([buf[2],buf[3]]);
-            self.reserved=u16::from_be_bytes([buf[4],buf[5]]);
+            // self.device_sn=u16::from_be_bytes([buf[2],buf[3]]);
+            self.device_sn=adder16(buf[2..3].to_vec());
+            // self.reserved=u16::from_be_bytes([buf[4],buf[5]]);
+            self.reserved=adder16(buf[4..5].to_vec());
             self.command=buf[6] as u8;
-            self.change_value=u16::from_be_bytes([buf[7],buf[8]]);
+            // self.change_value=u16::from_be_bytes([buf[7],buf[8]]);
+            self.change_value=adder16(buf[7..8].to_vec());
             self.pulse_onoff=buf[9] as u8;
-            self.set_pulse_freq=u16::from_be_bytes([buf[10],buf[11]]);
+            // self.set_pulse_freq=u16::from_be_bytes([buf[10],buf[11]]);
+            self.set_pulse_freq=adder16(buf[10..11].to_vec());
             self.set_pulse_time=[
-                u16::from_be_bytes([buf[12],buf[13]]),
-                u16::from_be_bytes([buf[14],buf[15]])
+                adder16(buf[12..13].to_vec()),
+                adder16(buf[14..15].to_vec()),
+                // u16::from_be_bytes([buf[12],buf[13]]),
+                // u16::from_be_bytes([buf[14],buf[15]])
             ];
-            self.pulse_moni=u16::from_be_bytes([buf[16],buf[17]]);
+            self.pulse_moni=adder16(buf[16..17].to_vec());
+            // self.pulse_moni=u16::from_be_bytes([buf[16],buf[17]]);
             self.hv_onoff=buf[18] as u8;
-            self.set_vol=u16::from_be_bytes([buf[19],buf[20]]);
-            self.hv_moni=u16::from_be_bytes([buf[21],buf[22]]);
+            self.set_vol=adder16(buf[19..20].to_vec());
+            // self.set_vol=u16::from_be_bytes([buf[19],buf[20]]);
+            self.hv_moni=adder16(buf[21..22].to_vec());
+            // self.hv_moni=u16::from_be_bytes([buf[21],buf[22]]);
             self.o_sens_moni=buf[23] as u8;
-            self.p_consum_moni=u16::from_be_bytes([buf[24],buf[25]]);
-            self.r_reserved=u32::from_be_bytes([buf[26],buf[27],buf[28],buf[29]]);
-            self.t_reserved=u32::from_be_bytes([buf[30],buf[31],buf[32],buf[33]]);
+            self.p_consum_moni=adder16(buf[24..25].to_vec());
+            // self.p_consum_moni=u16::from_be_bytes([buf[24],buf[25]]);
+            self.r_reserved=adder32(buf[26..29].to_vec());
+            self.t_reserved=adder32(buf[30..33].to_vec());
+            // self.r_reserved=u32::from_be_bytes([buf[26],buf[27],buf[28],buf[29]]);
+            // self.t_reserved=u32::from_be_bytes([buf[30],buf[31],buf[32],buf[33]]);
             self.checksum=u8::from_be_bytes([buf[34]]);
             self.end=u8::from_be_bytes([buf[35]]);
             return Ok(self.to_list())
@@ -357,9 +390,10 @@ impl RequestData {
 
 pub fn list_add(list:&Vec<RequestDataList>)->u64{
     let mut sumdata:u64=0;
+    
         for i in list {
             match *i {
-                RequestDataList::LENGHTH(data)|
+                // RequestDataList::LENGHTH(data)|
                 RequestDataList::COMMAND(data)|
                 RequestDataList::PULSE_ONOFF(data)|
                 RequestDataList::HV_ONOFF(data)|
@@ -403,3 +437,5 @@ pub fn list_add(list:&Vec<RequestDataList>)->u64{
         }
     sumdata
 }
+
+

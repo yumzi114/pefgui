@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use std::{thread, time::Duration, sync::{Arc, Mutex}};
+use std::{net::TcpStream, sync::{Arc, Mutex}, thread, time::Duration};
 use eframe::{egui::{self, Pos2, Rounding, Sense, Vec2, ViewportBuilder}, Theme};
 mod interface;
 mod applog;
@@ -17,11 +17,16 @@ use tokio::{runtime::Runtime};
 use tokio_serial::{StopBits, SerialPortBuilderExt, SerialPort};
 use tokio_util::codec::Decoder;
 use futures::{ StreamExt, SinkExt};
+use tungstenite::{connect, stream::MaybeTlsStream, WebSocket};
+use url::Url;
 
 // use log::{debug, error, info, trace, warn, LevelFilter, SetLoggerError};
 
 #[cfg(unix)]
 const DEFAULT_TTY: &str = "/dev/ttyAMA3";
+
+const SOCKET_URL: &'static str = "wss://yumi.town/socket";
+// const SOCKET_URL: &'static str = "ws://192.168.0.10:8080/socket";
 // const DEFAULT_TTY: &str = "/dev/ttyAMA0";
 fn main() -> Result<(), eframe::Error> {
     //윈도우 사이즈
@@ -46,8 +51,9 @@ fn main() -> Result<(), eframe::Error> {
             let mut app = PEFApp::new(cc);
             egui_extras::install_image_loaders(&cc.egui_ctx);
             let mem: Arc<Mutex<usize>> = app.thread_time.clone();
-            //UI상태변경용 스레드
-            ui_timer(mem);
+            let socket = app.socket.clone();
+            //UI상태변경용 스레드/소켓핑
+            ui_timer(socket,mem);
             //작업시간타이머
             let app_state_mem: Arc<Mutex<AppState>> = app.app_state.clone();
             run_timer(app_state_mem);
@@ -62,7 +68,9 @@ fn main() -> Result<(), eframe::Error> {
             serial_receiver(respone_mem,err_type);
             let state_mem= app.app_state.clone();
             let respone_mem= app.response.clone();
-            socket_sender(state_mem,respone_mem);
+            // let socket_onoff=app.socket_onoff.clone();
+            let socket = app.socket.clone();
+            socket_sender(socket,state_mem,respone_mem);
             Box::<PEFApp>::new(app)
         }),
     )
@@ -76,6 +84,8 @@ struct PEFApp {
     thread_time:Arc<Mutex<usize>>,
     // run_time:Arc<Mutex<Option<u16>>>,
     request:RequestData,
+    socket:Arc<Mutex<Option<WebSocket<MaybeTlsStream<TcpStream>>>>>,
+    // socket_onoff:bool,
     //송신스레드로 데이터전송을위한 앱채널
     app_sender:Sender<RequestData>,
     app_receiver:Receiver<RequestData>,
@@ -88,6 +98,16 @@ struct PEFApp {
 impl PEFApp {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
         setup_custom_fonts(&cc.egui_ctx);
+        //소켓설정
+        let socket_mem=
+        if let Ok((mut socket,res))=connect(Url::parse(SOCKET_URL).unwrap()){
+            Arc::new(Mutex::new(Some(socket)))
+        }else{
+            Arc::new(Mutex::new(None))
+        };
+        // let (mut socket, resp) =
+        // connect(Url::parse(SOCKET_URL).unwrap()).expect("Can't connect");
+        // let socket_mem = Arc::new(Mutex::new(socket));
         //시작시 기본설정으로 설정파일을 생성하고 읽어들여서 구조체생성 ~/.config/pefapp/{pulse.toml, vol.toml}
         confy::store("pefapp", "pulse", PulseInfo::default()).unwrap();
         confy::store("pefapp", "vol", VolatageInfo::default()).unwrap();
@@ -116,26 +136,61 @@ impl PEFApp {
             app_receiver:rx,
             response:respon_data,
             err_type,
+            socket:socket_mem,
             sys_time,
         }
+    }
+    //임시 네트워크 갱신 함수
+    fn update_net(&mut self){
+        if let None =(*self.socket.lock().unwrap()).as_mut(){
+            if let Ok((mut socket,res))=connect(Url::parse(SOCKET_URL).unwrap()){
+                // (*self.socket.lock().unwrap())=Some(socket);
+                // let asd=self.socket.lock();
+                // drop(self.socket.lock().unwrap());
+                let mut lock = self.socket.try_lock();
+                if let Ok(ref mut mutex)=lock{
+                    **mutex=Some(socket);
+                }
+                // (*self.socket.try_lock().unwrap()) = Some(socket);
+                
+            }else{
+                // (*self.socket.lock().unwrap())=None;
+            };
+        }
+        // if let Some(sender)=(*socket.lock().unwrap()).as_mut(){
+        //     (*sender).send(Message::Text(name)).unwrap();
+        // }
     }
 }
 
 impl eframe::App for PEFApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint();
+
         //경고창 활성화부분
         let rect = ctx.screen_rect();
         let center_rect = Pos2{
             x:(rect.max.x/2.0)-450.0,
             y:(rect.max.y/2.0)-250.0,
         };
+        //임시 네트워크 갱신
+        // self.update_net();
         //경고윈도우창
         warring_window(center_rect,ctx,&mut self.mainui);
-        
+        // if let None =(*self.socket.lock().unwrap()).as_mut(){
+        //     if let Ok((mut socket,res))=connect(Url::parse(SOCKET_URL).unwrap()){
+        //         (*self.socket.lock().unwrap())=Some(socket);
+        //     }else{
+        //         // (*self.socket.lock().unwrap())=None;
+        //     };
+        // }
         
         egui::CentralPanel::default().show(ctx, |ui| {
             // 인터페이스의 정의된 메서드실행 구문
+            // if let Some(asd)=(*self.socket.lock().unwrap()).as_mut(){
+            //     ui.label("연결됨");
+            // }
+            
             self.mainui.head_view(ui, ctx);
             self.mainui.content_view(ui, 
                 ctx,
