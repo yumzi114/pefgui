@@ -1,5 +1,5 @@
 use byteorder::{ReadBytesExt, WriteBytesExt, BigEndian, LittleEndian};
-use std::io::Cursor;
+use std::{borrow::BorrowMut, io::Cursor};
 
 use futures::{ StreamExt, SinkExt};
 use tokio_util::codec::{Decoder, Encoder};
@@ -124,7 +124,8 @@ impl fmt::Display for RequestDataList {
             RequestDataList::CHANGE_VALUE(value)=> write!(f,"{}",value),
             RequestDataList::PULSE_ONOFF(value)=> write!(f,"{}",value),
             RequestDataList::SET_PULSE_FREQ(value)=> write!(f,"{}",value),
-            RequestDataList::SET_PULSE_TIME([value,value1])=> write!(f,"{},{}",value,value1),
+            // RequestDataList::SET_PULSE_TIME([value,value1])=> write!(f,"{},{}",value,value1),
+            RequestDataList::SET_PULSE_TIME([value,value1])=> write!(f,"{}",value),
             RequestDataList::PULSE_MONI(value)=> write!(f,"{}",value),
             RequestDataList::HV_ONOFF(value)=> write!(f,"{}",value),
             RequestDataList::SET_VOL(value)=> write!(f,"{}",value),
@@ -231,57 +232,65 @@ impl RequestData {
     }
     pub fn parser(&mut self, buf: &Vec<u8>)->Result<Vec<RequestDataList>,String>{
         // let mut target = Cursor::new(buf.clone());
-        let adder8 = |num:Vec<u8>|{
-            let mut target = Cursor::new(num);
-            let ddd = target.read_u8().unwrap();
-            ddd
-        };
-        let adder16 = |num:Vec<u8>|{
-            let mut target = Cursor::new(num);
-            let ddd = target.read_u16::<BigEndian>().unwrap();
-            ddd
-        };
-        let adder32 = |num:Vec<u8>|{
-            let mut target = Cursor::new(num);
-            let ddd = target.read_u32::<BigEndian>().unwrap();
-            ddd
-        };
+        // let adder8 = |num:u8|{
+        //     let mut target = Cursor::new(vec![num]);
+        //     let ddd = target.read_u8().unwrap();
+        //     ddd
+        // };
+        // let adder16 = |num:Vec<u8>|{
+        //     let mut target = Cursor::new(num);
+        //     let ddd = target.read_u16::<BigEndian>().unwrap();
+        //     ddd
+        // };
+        // let adder32 = |num:Vec<u8>|{
+        //     let mut target = Cursor::new(num);
+        //     let ddd = target.read_u32::<BigEndian>().unwrap();
+        //     ddd
+        // };
         
         if buf.len()==36{
             self.start=buf[0] as u8;
+            // self.start=adder8(buf[0]);
             self.length=buf[1] as u8;
-            // self.device_sn=u16::from_be_bytes([buf[2],buf[3]]);
-            self.device_sn=adder16(buf[2..3].to_vec());
-            // self.reserved=u16::from_be_bytes([buf[4],buf[5]]);
-            self.reserved=adder16(buf[4..5].to_vec());
+            // self.length=adder8(buf[1]);
+            self.device_sn=u16::from_be_bytes([buf[2],buf[3]]);
+            // self.device_sn=adder16(buf[2..3].to_vec());
+            self.reserved=u16::from_be_bytes([buf[4],buf[5]]);
+            // self.reserved=adder16(buf[4..5].to_vec());
             self.command=buf[6] as u8;
-            // self.change_value=u16::from_be_bytes([buf[7],buf[8]]);
-            self.change_value=adder16(buf[7..8].to_vec());
+            // self.command=adder8(buf[6]);
+            self.change_value=u16::from_be_bytes([buf[7],buf[8]]);
+            // self.change_value=adder16(buf[7..8].to_vec());
             self.pulse_onoff=buf[9] as u8;
-            // self.set_pulse_freq=u16::from_be_bytes([buf[10],buf[11]]);
-            self.set_pulse_freq=adder16(buf[10..11].to_vec());
+            // self.pulse_onoff=adder8(buf[9]);
+            self.set_pulse_freq=u16::from_be_bytes([buf[10],buf[11]]);
+            // self.set_pulse_freq=adder16(buf[10..11].to_vec());
             self.set_pulse_time=[
-                adder16(buf[12..13].to_vec()),
-                adder16(buf[14..15].to_vec()),
-                // u16::from_be_bytes([buf[12],buf[13]]),
-                // u16::from_be_bytes([buf[14],buf[15]])
+                // adder16(buf[12..13].to_vec()),
+                // adder16(buf[14..15].to_vec()),
+                u16::from_be_bytes([buf[12],buf[13]]),
+                u16::from_be_bytes([buf[14],buf[15]])
             ];
-            self.pulse_moni=adder16(buf[16..17].to_vec());
-            // self.pulse_moni=u16::from_be_bytes([buf[16],buf[17]]);
+            // self.pulse_moni=adder16(buf[16..17].to_vec());
+            self.pulse_moni=u16::from_be_bytes([buf[16],buf[17]]);
             self.hv_onoff=buf[18] as u8;
-            self.set_vol=adder16(buf[19..20].to_vec());
-            // self.set_vol=u16::from_be_bytes([buf[19],buf[20]]);
-            self.hv_moni=adder16(buf[21..22].to_vec());
-            // self.hv_moni=u16::from_be_bytes([buf[21],buf[22]]);
+            // self.hv_onoff=adder8(buf[18]);
+            // self.set_vol=adder16(buf[19..20].to_vec());
+            self.set_vol=u16::from_be_bytes([buf[19],buf[20]]);
+            // self.hv_moni=adder16(buf[21..22].to_vec());
+            self.hv_moni=u16::from_be_bytes([buf[21],buf[22]]);
             self.o_sens_moni=buf[23] as u8;
-            self.p_consum_moni=adder16(buf[24..25].to_vec());
-            // self.p_consum_moni=u16::from_be_bytes([buf[24],buf[25]]);
-            self.r_reserved=adder32(buf[26..29].to_vec());
-            self.t_reserved=adder32(buf[30..33].to_vec());
-            // self.r_reserved=u32::from_be_bytes([buf[26],buf[27],buf[28],buf[29]]);
-            // self.t_reserved=u32::from_be_bytes([buf[30],buf[31],buf[32],buf[33]]);
+            // self.o_sens_moni=adder8(buf[23]);
+            // self.p_consum_moni=adder16(buf[24..25].to_vec());
+            self.p_consum_moni=u16::from_be_bytes([buf[24],buf[25]]);
+            // self.r_reserved=adder32(buf[26..29].to_vec());
+            // self.t_reserved=adder32(buf[30..33].to_vec());
+            self.r_reserved=u32::from_be_bytes([buf[26],buf[27],buf[28],buf[29]]);
+            self.t_reserved=u32::from_be_bytes([buf[30],buf[31],buf[32],buf[33]]);
             self.checksum=u8::from_be_bytes([buf[34]]);
+            // self.checksum=adder8(buf[34]);
             self.end=u8::from_be_bytes([buf[35]]);
+            // self.end=adder8(buf[35]);
             return Ok(self.to_list())
         }else{
             return Err("Fail Parsing".to_string());
@@ -355,13 +364,22 @@ impl RequestData {
         let list = self.to_list();
         let sumdata: u64 =list_add(&list);
         let hex_str = format!("{:#x}",sumdata);
-        let test =hex::decode(&hex_str[hex_str.len()-2..]).unwrap();
-        self.checksum=test[0];
+        
+        let test=hex::decode(&hex_str[hex_str.len()-2..]);
+        if let Ok(data)=test{
+            self.checksum=data[0];
+        }
+        else{
+            let hex_str = hex_str.trim_start_matches("0x");
+            // println!("{:?}",hex_str);
+            self.checksum=u8::from_str_radix(hex_str,16).unwrap();
+        }
     }
     pub fn is_checksum(&self)->Result<String, String>{
         let list = self.to_list();
         let sumdata: u64 =list_add(&list);
         let hex_str = format!("{:#x}",sumdata);
+        
         let check_sum =hex::decode(&hex_str[hex_str.len()-2..]).unwrap();
         if self.checksum!=check_sum[0]{
             return Err("Fail checksum Err".to_string());
@@ -390,7 +408,6 @@ impl RequestData {
 
 pub fn list_add(list:&Vec<RequestDataList>)->u64{
     let mut sumdata:u64=0;
-    
         for i in list {
             match *i {
                 // RequestDataList::LENGHTH(data)|
@@ -399,9 +416,10 @@ pub fn list_add(list:&Vec<RequestDataList>)->u64{
                 RequestDataList::HV_ONOFF(data)|
                 RequestDataList::OPEN_SENSOR_MONI(data)
                 =>{
-                    if let Some(num)=sumdata.checked_add(u64::from(data)){
-                        sumdata+=u64::from(num);
-                    }
+                    sumdata+=u64::from(data);
+                    // if let Some(num)=sumdata.checked_add(u128::from(data)){
+                    //     sumdata+=u128::from(num);
+                    // }
                 },
                 RequestDataList::DEVICE_SN(data)|
                 RequestDataList::RESERVED(data)|
@@ -412,24 +430,27 @@ pub fn list_add(list:&Vec<RequestDataList>)->u64{
                 RequestDataList::HV_MONI(data)|
                 RequestDataList::POWER_CONSUM_MONI(data)
                 =>{
-                    if let Some(num)=sumdata.checked_add(u64::from(data)){
-                        sumdata+=u64::from(num);
-                    }
+                    sumdata+=u64::from(data);
+                    // if let Some(num)=sumdata.checked_add(u128::from(data)){
+                    //     sumdata+=u128::from(num);
+                    // }
                 },
                 RequestDataList::SET_PULSE_TIME(data)
                 =>{
                     for i in data{
-                        if let Some(num)=sumdata.checked_add(u64::from(i)){
-                            sumdata+=u64::from(num);
-                        }
+                        sumdata+=u64::from(i);
+                        // if let Some(num)=sumdata.checked_add(u128::from(i)){
+                        //     sumdata+=u128::from(num);
+                        // }
                     }
                 },
                 RequestDataList::L_RESERVED(data)|
                 RequestDataList::L2_RESERVED(data)
                 =>{
-                    if let Some(num)=sumdata.checked_add(u64::from(data)){
-                        sumdata+=u64::from(num);
-                    }
+                    sumdata+=u64::from(data);
+                    // if let Some(num)=sumdata.checked_add(u128::from(data)){
+                    //     sumdata+=u128::from(num);
+                    // }
                 },
                 _=>{
                 }

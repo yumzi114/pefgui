@@ -60,7 +60,7 @@ impl ::std::default::Default for UserUi {
             set_value:String::new(),
             status_str:String::new(),
             view_menu:ViewList::default(),
-            table_sel:vec![false,false,false,false,false,false,false,false,false],
+            table_sel:vec![false,false,false,false,false,false,false,false,false,false],
             warning_pop:false,
         }
     }

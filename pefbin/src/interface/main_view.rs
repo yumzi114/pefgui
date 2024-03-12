@@ -201,6 +201,24 @@ pub fn main_view(
                                 uui.table_sel[8]=!uui.table_sel[8]
                             };
                         });
+                        body.row(80.0, |mut row| {
+                            // row.index()
+                            row.set_selected(uui.table_sel[9]);
+                            row.col(|ui| {
+                                ui.add_space(15.);
+                                ui.label(RichText::new("OPEN DOOR").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                            });
+                            row.col(|ui| {
+                                ui.add_space(15.);
+                                
+                                let value = if mem.lock().unwrap()[13]==RequestDataList::OPEN_SENSOR_MONI(1){"OPEN"}else{"CLOSE"};
+                                // let value = format!("{}",);
+                                ui.label(RichText::new(value.to_owned()).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                            });
+                            if row.response().drag_released(){
+                                uui.table_sel[9]=!uui.table_sel[9]
+                            };
+                        });
                     });
         
                 });

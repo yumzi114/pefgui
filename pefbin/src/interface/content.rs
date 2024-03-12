@@ -196,7 +196,16 @@ pub fn setting_view(
                                 });
                                 row.col(|ui| {
                                     ui.add_space(10.);
-                                    ui.label(RichText::new(format!("{}",mem.lock().unwrap()[4])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                    
+                                    if (*app_state_mem.lock().unwrap()).limit_time>0{
+                                        ui.label(RichText::new(
+                                            (*app_state_mem.lock().unwrap()).get_limit_time_fmt()
+                                        ).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                    }
+                                    else {
+                                        ui.label(RichText::new("None").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                    }
+                                    // ui.label(RichText::new(format!("{}",mem.lock().unwrap()[4])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                                 });
                             });
                         });
