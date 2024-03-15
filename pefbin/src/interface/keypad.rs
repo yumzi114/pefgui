@@ -22,11 +22,13 @@ pub fn keypad_view(
     sender:&mut Sender<RequestData>,
     app_state:&mut Arc<Mutex<AppState>>,
     warring_open:&mut bool,
+    timer_sender:&mut Sender<usize>,
+    k_timer_sender:&mut Sender<u8>,
 )->InnerResponse<()>{
     let title = match selmenu {
         Some(MenuList::SetVoltage)=>"High Voltage Set",
         Some(MenuList::PulseFreq)=>"Pulse Frequency Set",
-        Some(MenuList::PulseOffTime)=>"Pulse OFF_Time Set",
+        // Some(MenuList::PulseOffTime)=>"Pulse OFF_Time Set",
         Some(MenuList::PulseOnTime)=>"Pulse ON_Time Set",
         Some(MenuList::RunningTime)=>"App Runtime Set",
         _=>""
@@ -46,12 +48,15 @@ pub fn keypad_view(
             columns[0].vertical_centered_justified(|ui|{
                 if ui.add(egui::Button::new(RichText::new("7").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('7');
+                    k_timer_sender.send(3).unwrap();
                 }
                 if ui.add(egui::Button::new(RichText::new("4").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('4');
+                    k_timer_sender.send(3).unwrap();
                 }
                 if ui.add(egui::Button::new(RichText::new("1").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('1');
+                    k_timer_sender.send(3).unwrap();
                 }
                 if ui.add(egui::Button::new(RichText::new("Close").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     *selmenu=None;
@@ -61,26 +66,33 @@ pub fn keypad_view(
             columns[1].vertical_centered_justified(|ui|{
                 if ui.add(egui::Button::new(RichText::new("8").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('8');
+                    k_timer_sender.send(3).unwrap();
                 }
                 if ui.add(egui::Button::new(RichText::new("5").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('5');
+                    k_timer_sender.send(3).unwrap();
                 }
                 if ui.add(egui::Button::new(RichText::new("2").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('2');
+                    k_timer_sender.send(3).unwrap();
                 }
                 if ui.add(egui::Button::new(RichText::new("0").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('0');
+                    k_timer_sender.send(3).unwrap();
                 }
             });
             columns[2].vertical_centered_justified(|ui|{
                 if ui.add(egui::Button::new(RichText::new("9").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('9');
+                    k_timer_sender.send(3).unwrap();
                 }
                 if ui.add(egui::Button::new(RichText::new("6").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('6');
+                    k_timer_sender.send(3).unwrap();
                 }
                 if ui.add(egui::Button::new(RichText::new("3").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                     setvalue.push('3');
+                    k_timer_sender.send(3).unwrap();
                 }
                 match selmenu {
                     Some(MenuList::RunningTime)=>{
@@ -89,8 +101,9 @@ pub fn keypad_view(
                         }
                     },
                     _=>{
-                        if ui.add(egui::Button::new(RichText::new(".").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
-                            setvalue.push('.');
+                        if ui.add(egui::Button::new(RichText::new("").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
+                            // setvalue.push('.');
+                            k_timer_sender.send(3).unwrap();
                         }
                     }
                 }
@@ -101,46 +114,54 @@ pub fn keypad_view(
                     if ui.add(egui::Button::new(RichText::new("Set").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
                             Some(MenuList::PulseFreq)=>{
-                                if setvalue.parse::<f32>().unwrap_or(0.) >1000.0{
+                                if setvalue.parse::<u64>().unwrap_or(0) >1000{
                                     *status_str="Limit value (0 ~ 1000 Hz)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
                                 }else {
-                                    let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
-                                    pulse.freq_value=num.parse::<f32>().unwrap_or(0.);
+                                    // let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
+                                    pulse.freq_value=setvalue.parse::<u16>().unwrap_or(0);
                                     pulse.save(request,sender);
+                                    pulse.max_value_change();
                                     *status_str=format!("Set Done Value : {} ", pulse.freq_value.to_string());
                                     setvalue.clear();
                                 }
+                                k_timer_sender.send(3).unwrap();
                             },
                             Some(MenuList::PulseOffTime)=>{
-                                if setvalue.parse::<f32>().unwrap_or(0.) >100.0{
-                                    *status_str="Limit value (0 ~ 100 ms)".to_string();
-                                    *warring_open=true;
-                                    setvalue.clear();
-                                }else {
-                                    let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
-                                    pulse.off_time_value=num.parse::<f32>().unwrap_or(0.);
-                                    pulse.save(request,sender);
-                                    *status_str=format!("Set Done Value : {} ", pulse.off_time_value.to_string());
-                                    setvalue.clear();
-                                }
+                                // if setvalue.parse::<f32>().unwrap_or(0.) >100.0{
+                                //     *status_str="Limit value (0 ~ 100 ms)".to_string();
+                                //     *warring_open=true;
+                                //     setvalue.clear();
+                                // }else {
+                                //     // let num = format!("{:.01}", setvalue.parse::<u16>().unwrap_or(0.));
+                                //     pulse.off_time_value=setvalue.parse::<u16>().unwrap_or(0);
+                                //     pulse.save(request,sender);
+                                //     *status_str=format!("Set Done Value : {} ", pulse.off_time_value.to_string());
+                                //     setvalue.clear();
+                                // }
+                                // k_timer_sender.send(3).unwrap();
                             },
                             Some(MenuList::PulseOnTime)=>{
-                                if setvalue.parse::<f32>().unwrap_or(0.) >100.0{
-                                    *status_str="Limit value (0 ~ 100 ms)".to_string();
-                                    *warring_open=true;
-                                    setvalue.clear();
-                                }else {
-                                    let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
-                                    pulse.on_time_value=num.parse::<f32>().unwrap_or(0.);
-                                    pulse.save(request,sender);
-                                    *status_str=format!("Set Done Value : {} ", pulse.on_time_value.to_string());
-                                    setvalue.clear();
-                                }
+                                if let Some(value)=pulse.max_time_value{
+                                    if setvalue.parse::<u64>().unwrap_or(0) >u64::from(value){
+                                        *status_str="Limit value (0 ~  ms)".to_string();
+                                        *warring_open=true;
+                                        setvalue.clear();
+                                    }else {
+                                        // let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
+                                        pulse.on_time_value=setvalue.parse::<u16>().unwrap_or(0);
+                                        pulse.save(request,sender);
+                                        
+                                        *status_str=format!("Set Done Value : {} ", pulse.on_time_value.to_string());
+                                        setvalue.clear();
+                                    }
+                                    k_timer_sender.send(3).unwrap();
+                                };
+                                
                             },
                             Some(MenuList::RunningTime)=>{
-                                if setvalue.parse::<u16>().unwrap_or(0) >5000{
+                                if setvalue.parse::<u64>().unwrap_or(0) >5000{
                                     *status_str="Limit value (0 ~ 5000M)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
@@ -148,10 +169,12 @@ pub fn keypad_view(
                                     let num = format!("{}", setvalue.parse::<u16>().unwrap_or(0));
                                     // (*app_state_mem.lock().unwrap()).set_time=Some(15);
                                     // let app_state_mem = app_state.clone();
+                                    
                                     let mut temp = (*app_state.lock().unwrap()).clone();
                                     temp.set_time=num.parse::<u16>().unwrap_or(0);
                                     temp.limit_time=num.parse::<u16>().unwrap_or(0);
                                     // let ddd = app_state.lock().unwrap().clone();
+                                    timer_sender.send(temp.set_time as usize).unwrap();
                                     *app_state.lock().unwrap()=temp;
                                     // sender.send(temp).unwrap();
                                     
@@ -159,19 +182,21 @@ pub fn keypad_view(
                                     *status_str=format!("Set Done Value : {} ", num.to_string());
                                     setvalue.clear();
                                 }
+                                k_timer_sender.send(3).unwrap();
                             },
                             Some(MenuList::SetVoltage)=>{
-                                if setvalue.parse::<f32>().unwrap_or(0.) >20.0{
+                                if setvalue.parse::<u64>().unwrap_or(0) >20{
                                     *status_str="Limit value (0 ~ 20 Kv)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
                                 }else {
-                                    let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
-                                    volat.value=num.parse::<f32>().unwrap_or(0.);
+                                    // let num = format!("{:.01}", setvalue.parse::<u16>().unwrap_or(0.));
+                                    volat.value=setvalue.parse::<u16>().unwrap_or(0);
                                     volat.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", volat.value.to_string());
                                     setvalue.clear();
                                 }
+                                k_timer_sender.send(3).unwrap();
                             },
                             _=>{}
                         }

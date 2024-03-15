@@ -3,9 +3,17 @@ use super::{UserUi, ViewList};
 pub fn top_logo_view(ui: &mut Ui,ctx: &egui::Context, uui:&mut UserUi)->InnerResponse<()>{
     ui.vertical_centered(|ui|{
         ui.columns(2, |columns|{
-            columns[0].vertical_centered(|ui|{
-                ui.add_space(40.0);
-                ui.label(RichText::new("PEF TEST BOARD").strong().size(80.0));
+            columns[0].horizontal(|ui|{
+                ui.vertical(|ui|{
+                    ui.add_space(30.0);
+                    ui.horizontal(|ui|{
+                        ui.add_space(30.0);
+                        let (rect, _response) =ui.allocate_at_least(Vec2::new(450., 120.), Sense::click_and_drag());
+                        egui::Image::new(egui::include_image!("../../files/device_image/red.png"))
+                            .paint_at(ui, rect);
+                        // ui.label(RichText::new("PEF CIA").strong().size(80.0));
+                    });
+                });
             });
             columns[1].vertical_centered(|ui|{
                 ui.add_space(50.0);

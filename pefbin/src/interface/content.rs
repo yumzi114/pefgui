@@ -15,10 +15,14 @@ pub fn setting_view(
     request:&mut RequestData, 
     sender:&mut Sender<RequestData>,
     response:&Arc<Mutex<Vec<RequestDataList>>>,
+    report:&Arc<Mutex<Vec<RequestDataList>>>,
     app_state:&mut Arc<Mutex<AppState>>,
+    timer_sender:&mut Sender<usize>,
+    k_timer_sender:&mut Sender<u8>,
     // sys_time:&Arc<Mutex<String>>
 )->InnerResponse<()>{
-    let mem = response.clone();
+    // let mem = response.clone();
+    
     let app_state_mem = app_state.clone();
     if uui.warning_pop{
         ui.set_enabled(false);
@@ -38,11 +42,11 @@ pub fn setting_view(
                                 uui.set_value.clear();
                                 uui.status_str="Voltage Value Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
-                                click_voltage(uui,MenuList::SetVoltage,pos);
+                                click_voltage(uui,MenuList::SetVoltage,pos,k_timer_sender);
                             }
                         });
                         
-                        let value = format!("Device : {}",mem.lock().unwrap()[11]);
+                        let value = format!("Device : {}",report.lock().unwrap()[11]);
                         ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                     columns[1].vertical_centered_justified(|ui|{
@@ -54,10 +58,10 @@ pub fn setting_view(
                                 uui.set_value.clear();
                                 uui.status_str="Pulse Value Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
-                                click_voltage(uui,MenuList::PulseFreq,pos);
+                                click_voltage(uui,MenuList::PulseFreq,pos,k_timer_sender);
                             }
                         });
-                        let value = format!("Device : {}",mem.lock().unwrap()[7]);
+                        let value = format!("Device : {}",report.lock().unwrap()[7]);
                         ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                 });
@@ -68,15 +72,29 @@ pub fn setting_view(
                         ui.label(RichText::new("Pulse Time").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
-                            let b_response = button_respone(ui, uui, &MenuList::PulseOnTime, format!("{} ms",pulse_info.on_time_value.to_string()));
-                            if b_response.clicked(){
-                                uui.set_value.clear();
-                                uui.status_str="Pulse ON_TIME Setting".to_string();
-                                let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
-                                click_voltage(uui,MenuList::PulseOnTime,pos);
-                            }
+                            ui.add_enabled_ui({
+                                match  pulse_info.max_time_value {
+                                    Some(_)=>{
+                                        true
+                                    }
+                                    None=>{
+                                        false
+                                    }
+                                }
+                                
+                            }, |ui|{
+                                let b_response = button_respone(ui, uui, &MenuList::PulseOnTime, format!("{} ms",pulse_info.on_time_value.to_string()));
+                            // b_response.
+                                if b_response.clicked(){
+                                    uui.set_value.clear();
+                                    uui.status_str="Pulse ON_TIME Setting".to_string();
+                                    let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
+                                    click_voltage(uui,MenuList::PulseOnTime,pos,k_timer_sender);
+                                }
+                                });
+                            
                         });
-                        let value = format!("Device : {}",mem.lock().unwrap()[8]);
+                        let value = format!("Device : {}",report.lock().unwrap()[8]);
                         ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                     columns[1].vertical_centered_justified(|ui|{
@@ -84,11 +102,12 @@ pub fn setting_view(
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
                             let b_response = button_respone(ui, uui, &MenuList::RunningTime, format!("{} M",(*app_state_mem.lock().unwrap()).set_time.to_string()));
+                            
                             if b_response.clicked(){
                                 uui.set_value.clear();
                                 uui.status_str="App Run Time Setting".to_string();
                                 let pos = b_response.hover_pos().unwrap_or(Pos2{x:50.,y:50.});
-                                click_voltage(uui,MenuList::RunningTime,pos);
+                                click_voltage(uui,MenuList::RunningTime,pos,k_timer_sender);
                             }
                         });
                         if (*app_state_mem.lock().unwrap()).set_time>0{
@@ -167,7 +186,7 @@ pub fn setting_view(
                             });
                             header.col(|ui| {
                                 ui.add_space(10.);
-                                ui.label(RichText::new(format!("{}",mem.lock().unwrap()[11])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new(format!("{}",report.lock().unwrap()[11])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                         })
                         .body(|mut body| {
@@ -178,7 +197,7 @@ pub fn setting_view(
                                 });
                                 row.col(|ui| {
                                     ui.add_space(10.);
-                                    ui.label(RichText::new(format!("{}",mem.lock().unwrap()[7])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                    ui.label(RichText::new(format!("{}",report.lock().unwrap()[7])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                                 });
                             });
                             body.row(70.0, |mut row| {
@@ -187,7 +206,7 @@ pub fn setting_view(
                                 });
                                 row.col(|ui| {
                                     ui.add_space(10.);
-                                    ui.label(RichText::new(format!("{}",mem.lock().unwrap()[14])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                    ui.label(RichText::new(format!("{}",report.lock().unwrap()[14])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                                 });
                             });
                             body.row(70.0, |mut row| {
@@ -226,6 +245,8 @@ pub fn setting_view(
                         sender,
                         app_state,
                         &mut uui.warning_pop,
+                        timer_sender,
+                        k_timer_sender
                     );
                 }
             });
@@ -234,7 +255,7 @@ pub fn setting_view(
 }
 
 //메뉴리스트 중복처리
-fn click_voltage(uui:&mut UserUi, selmenu:MenuList, get_pos:Pos2){
+fn click_voltage(uui:&mut UserUi, selmenu:MenuList, get_pos:Pos2,k_timer_sender:&mut Sender<u8>,){
     if uui.keypad.popon && uui.keypad.sellist==Some(selmenu){
         uui.keypad.popon=false;
         uui.keypad.sellist=None;
@@ -244,6 +265,7 @@ fn click_voltage(uui:&mut UserUi, selmenu:MenuList, get_pos:Pos2){
         uui.keypad.popon=true;
         uui.keypad.sellist=Some(selmenu);
         uui.keypad.uipost=get_pos;
+        k_timer_sender.send(3).unwrap();
     };
 }
 
@@ -251,10 +273,22 @@ fn click_voltage(uui:&mut UserUi, selmenu:MenuList, get_pos:Pos2){
 fn button_respone(ui: &mut Ui, uui:&UserUi, check_sel:&MenuList,value_str:String)->egui::Response{
     let b_response: egui::Response = 
     if uui.keypad.sellist==Some(*check_sel){
-        ui.add(egui::Button::new(RichText::new(value_str).strong().size(90.0)).min_size(Vec2{x:420.0,y:130.0}).sense(Sense::click()).fill(Color32::from_rgb(133, 255, 115)).rounding(egui::Rounding{nw:50.,ne:50.,sw:50.,se:50.,}))
+        ui.add(egui::Button::new(
+            RichText::new(value_str).strong().size(90.0))
+            .min_size(Vec2{x:420.0,y:130.0})
+            .sense(Sense::click())
+            .fill(Color32::from_rgb(133, 255, 115))
+            .rounding(egui::Rounding{nw:40.,ne:40.,sw:40.,se:40.,})
+        )
     }
     else {
-        ui.add(egui::Button::new(RichText::new(value_str).strong().size(90.0)).min_size(Vec2{x:420.0,y:130.0}).rounding(egui::Rounding{nw:40.,ne:40.,sw:40.,se:40.,}).sense(Sense::click()))
+        ui.add(egui::Button::new(
+            RichText::new(value_str)
+            .strong().size(90.0))
+            .min_size(Vec2{x:420.0,y:130.0})
+            .rounding(egui::Rounding{nw:40.,ne:40.,sw:40.,se:40.,})
+            .sense(Sense::click())
+        )
     };
     b_response
 }

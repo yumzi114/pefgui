@@ -9,7 +9,7 @@ mod app_error;
 mod app_threads;
 use app_error::ErrorList;
 use component::{setup_custom_fonts, warring_window};
-use app_threads::{ui_timer,run_timer,serial_receiver,serial_sender,socket_sender};
+use app_threads::{ui_timer,run_timer,serial_receiver,serial_sender,socket_sender,keypad_timer};
 use crossbeam_channel::{unbounded,Receiver,Sender};
 use interface::{UserUi,keypad::keypad_view};
 use pefapi::{device::{PulseInfo,VolatageInfo, AppState}, LineCodec, RequestData, RequestDataList};
@@ -19,7 +19,7 @@ use tokio_util::codec::Decoder;
 use futures::{ StreamExt, SinkExt};
 use tungstenite::{connect, stream::MaybeTlsStream, WebSocket};
 use url::Url;
-
+use thread_timer::ThreadTimer;
 // use log::{debug, error, info, trace, warn, LevelFilter, SetLoggerError};
 
 #[cfg(unix)]
@@ -55,17 +55,24 @@ fn main() -> Result<(), eframe::Error> {
             //UI상태변경용 스레드/소켓핑
             ui_timer(socket,mem);
             //작업시간타이머
-            let app_state_mem: Arc<Mutex<AppState>> = app.app_state.clone();
-            run_timer(app_state_mem);
+            let timer_t = app.timer.clone();
+            let timer_receiver: Receiver<usize> = app.timer_receiver.clone();
+            let time_sender= app.time_sender.clone();
+            run_timer(timer_t,timer_receiver,time_sender);
+            let pad_timer = app.keypad_timer.clone();
+            let k_timer_receiver = app.k_timer_receiver.clone();
+            let k_time_sender = app.k_time_sender.clone();
+            keypad_timer(pad_timer,k_timer_receiver,k_time_sender);
             //시리얼 통신(송신)을 위한 스레드
             let recv: Receiver<RequestData> = app.app_receiver.clone();
             // let respone_mem= app.response.clone();
             serial_sender(recv);
             let respone_mem: Arc<Mutex<Vec<RequestDataList>>>= app.response.clone();
+            let report_mem: Arc<Mutex<Vec<RequestDataList>>>= app.report.clone();
             let err_type: Arc<Mutex<ErrorList>> = app.err_type.clone();
             // let sys_time_mem: Arc<Mutex<String>> = app.sys_time.clone();
             // let _handle: log4rs::Handle = log4rs::init_config(logconfig((*sys_time_mem.lock().unwrap()).clone())).unwrap();
-            serial_receiver(respone_mem,err_type);
+            serial_receiver(respone_mem,report_mem,err_type,);
             let state_mem= app.app_state.clone();
             let respone_mem= app.response.clone();
             // let socket_onoff=app.socket_onoff.clone();
@@ -80,10 +87,24 @@ fn main() -> Result<(), eframe::Error> {
 struct PEFApp {
     mainui:UserUi,
     voltage:VolatageInfo,
-    PulseInfo:PulseInfo,
+    pulse_Info:PulseInfo,
     thread_time:Arc<Mutex<usize>>,
+    //작업시간 타이머 스레드,채널
+    timer:ThreadTimer,
+    timer_sender:Sender<usize>,
+    timer_receiver:Receiver<usize>,
+    time_sender:Sender<usize>,
+    time_receiver:Receiver<usize>,
+    //키패드 타이머 스레드,채널
+    keypad_timer:ThreadTimer,
+    k_time:u8,
+    k_timer_sender:Sender<u8>,
+    k_timer_receiver:Receiver<u8>,
+    k_time_sender:Sender<u8>,
+    k_time_receiver:Receiver<u8>,
     // run_time:Arc<Mutex<Option<u16>>>,
     request:RequestData,
+    
     socket:Arc<Mutex<Option<WebSocket<MaybeTlsStream<TcpStream>>>>>,
     // socket_onoff:bool,
     //송신스레드로 데이터전송을위한 앱채널
@@ -91,8 +112,9 @@ struct PEFApp {
     app_receiver:Receiver<RequestData>,
     app_state:Arc<Mutex<AppState>>,
     response:Arc<Mutex<Vec<RequestDataList>>>,
+    report:Arc<Mutex<Vec<RequestDataList>>>,
     err_type:Arc<Mutex<ErrorList>>,
-    sys_time:Arc<Mutex<String>>,
+    repo_err_type:Arc<Mutex<ErrorList>>,
 }
 
 impl PEFApp {
@@ -113,54 +135,69 @@ impl PEFApp {
         confy::store("pefapp", "vol", VolatageInfo::default()).unwrap();
         confy::store("pefapp", "appstate", AppState::default()).unwrap();
         let voltage = confy::load("pefapp", "vol").unwrap_or_default();
-        let PulseInfo = confy::load("pefapp", "pulse").unwrap_or_default();
+        let mut pulse_Info: PulseInfo = confy::load("pefapp", "pulse").unwrap_or_default();
+        pulse_Info.max_value_change();
         let app_state = Arc::new(Mutex::new(confy::load("pefapp", "appstate").unwrap_or_default()));
         let thread_time = Arc::new(Mutex::new(1));
         let request = RequestData::default();
-        let socket_req = Arc::new(Mutex::new(request));
+        // let socket_req = Arc::new(Mutex::new(request));
         let (tx, rx) = unbounded();
         let response=RequestData::default().to_list();
+        let report = RequestData::default().to_list();
         let respon_data = Arc::new(Mutex::new(response));
+        let report = Arc::new(Mutex::new(report));
         let err_type = Arc::new(Mutex::new(ErrorList::default()));
-        let time = chrono::offset::Local::now().format("%Y-%m-%d");
-        let sys_time = Arc::new(Mutex::new(format!("{}",time)));
+        let repo_err_type= Arc::new(Mutex::new(ErrorList::default()));
+        // let time = chrono::offset::Local::now().format("%Y-%m-%d");
+        //작업시간
+        let timer = ThreadTimer::new();
+        let (timer_sender,timer_receiver)=unbounded();
+        let (time_sender,time_receiver)=unbounded();
+        let (k_timer_sender,k_timer_receiver)=unbounded();
+        let (k_time_sender,k_time_receiver)=unbounded();
+        //키패드
+        let keypad_timer = ThreadTimer::new();
         
         Self{
             mainui:UserUi::default(),
             voltage,
-            PulseInfo,
+            pulse_Info,
             app_state,
             thread_time,
+            timer,
+            timer_sender,
+            timer_receiver,
+            time_sender,
+            time_receiver,
+            keypad_timer,
+            k_time:0,
+            k_timer_sender,
+            k_timer_receiver,
+            k_time_sender,
+            k_time_receiver,
             request,
+            report,
             app_sender:tx,
             app_receiver:rx,
             response:respon_data,
             err_type,
+            repo_err_type,
             socket:socket_mem,
-            sys_time,
+            
         }
     }
     //임시 네트워크 갱신 함수
-    fn update_net(&mut self){
-        if let None =(*self.socket.lock().unwrap()).as_mut(){
-            if let Ok((mut socket,res))=connect(Url::parse(SOCKET_URL).unwrap()){
-                // (*self.socket.lock().unwrap())=Some(socket);
-                // let asd=self.socket.lock();
-                // drop(self.socket.lock().unwrap());
-                let mut lock = self.socket.try_lock();
-                if let Ok(ref mut mutex)=lock{
-                    **mutex=Some(socket);
-                }
-                // (*self.socket.try_lock().unwrap()) = Some(socket);
-                
-            }else{
-                // (*self.socket.lock().unwrap())=None;
-            };
-        }
-        // if let Some(sender)=(*socket.lock().unwrap()).as_mut(){
-        //     (*sender).send(Message::Text(name)).unwrap();
-        // }
-    }
+    // fn update_net(&mut self){
+    //     if let None =(*self.socket.lock().unwrap()).as_mut(){
+    //         if let Ok((mut socket,res))=connect(Url::parse(SOCKET_URL).unwrap()){
+    //             let mut lock = self.socket.try_lock();
+    //             if let Ok(ref mut mutex)=lock{
+    //                 **mutex=Some(socket);
+    //             }
+    //         }else{
+    //         };
+    //     }
+    // }
 }
 
 impl eframe::App for PEFApp {
@@ -173,6 +210,23 @@ impl eframe::App for PEFApp {
             x:(rect.max.x/2.0)-450.0,
             y:(rect.max.y/2.0)-250.0,
         };
+        //타임어택 -1
+        if let Ok(data)=self.time_receiver.try_recv(){
+            self.app_state.lock().unwrap().limit_time=data as u16;
+            if data!=0{
+                self.timer_sender.send(data).unwrap();
+            }
+        }
+        if let Ok(num)=self.k_time_receiver.try_recv(){
+            self.k_time=num;
+            if num ==0{
+                self.mainui.keypad.popon=false;
+                self.mainui.keypad.sellist=None;
+            }
+            else if num !=0{
+                self.k_timer_sender.send(num).unwrap();
+            }
+        }
         //임시 네트워크 갱신
         // self.update_net();
         //경고윈도우창
@@ -194,49 +248,19 @@ impl eframe::App for PEFApp {
             self.mainui.head_view(ui, ctx);
             self.mainui.content_view(ui, 
                 ctx,
-                &mut self.PulseInfo,
+                &mut self.pulse_Info,
                 &mut self.voltage,
                 &mut self.request,
                 &mut self.app_sender,
                 &mut self.response,
-                &self.sys_time,
+                &mut self.report,
                 &mut self.app_state,
+                &mut self.timer_sender,
+                &mut self.k_timer_sender,
+                
             );
             self.mainui.bottom_view(ui, ctx,&self.thread_time,&self.err_type,&mut self.app_state);
         });
     }
 }
 
-
-// fn logconfig(date:String)->Config{
-//     let mut pattern =format!("/tmp/response/{}.",date);
-//     pattern.push_str("{}.log");
-//     let level = log::LevelFilter::Info;
-//     let stderr = ConsoleAppender::builder().target(Target::Stderr).build();
-//     let trigger = SizeTrigger::new(TRIGGER_FILE_SIZE);
-//     let roller = FixedWindowRoller::builder()
-//         .base(0) // Default Value (line not needed unless you want to change from 0 (only here for demo purposes)
-//         .build(pattern.as_str(), LOG_FILE_COUNT) // Roll based on pattern and max 3 archive files
-//         .unwrap();
-//     let policy = CompoundPolicy::new(Box::new(trigger), Box::new(roller));
-//     let logfile = log4rs::append::rolling_file::RollingFileAppender::builder()
-//         // Pattern: https://docs.rs/log4rs/*/log4rs/encode/pattern/index.html
-//         .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-//         .build(FILE_PATH, Box::new(policy))
-//         .unwrap();
-//     let config = Config::builder()
-//         .appender(Appender::builder().build("logfile", Box::new(logfile)))
-//         .appender(
-//             Appender::builder()
-//                 .filter(Box::new(ThresholdFilter::new(level)))
-//                 .build("stderr", Box::new(stderr)),
-//         )
-//         .build(
-//             Root::builder()
-//                 .appender("logfile")
-//                 .appender("stderr")
-//                 .build(LevelFilter::Info),
-//         )
-//         .unwrap();
-//     config
-// }

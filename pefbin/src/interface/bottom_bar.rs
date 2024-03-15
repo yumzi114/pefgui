@@ -46,7 +46,7 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                     }
                     match uui.keypad.sellist {
                         Some(MenuList::PulseFreq)
-                        |Some(MenuList::PulseOffTime)
+                        // |Some(MenuList::PulseOffTime)
                         |Some(MenuList::PulseOnTime)
                         |Some(MenuList::PulseOnTime)
                         |Some(MenuList::RunningTime)

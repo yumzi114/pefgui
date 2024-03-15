@@ -11,6 +11,7 @@ use url::Url;
 use std::sync::mpsc::channel;
 use futures_timer::Delay;
 use tungstenite::{connect, stream::MaybeTlsStream, Message, WebSocket};
+use thread_timer::ThreadTimer;
 use crate::app_error::ErrorList;
 
 
@@ -52,41 +53,86 @@ pub fn ui_timer(
     });
 }
 //작업시간 타이머스레드
+// pub fn run_timer(
+//     app_state_mem: Arc<Mutex<AppState>>,
+//     timer:ThreadTimer,
+// ){
+    
+    
+//     thread::spawn(move||{
+//         timer.start(Duration::from_secs(30), move || { }).unwrap();
+//         let rt  = Runtime::new().unwrap();
+//         rt.block_on(async {
+//             loop{
+//                 thread::sleep(Duration::from_millis(1));
+//                 if (*app_state_mem.lock().unwrap()).limit_time!=0{
+//                     let mut app_state = (*app_state_mem.lock().unwrap()).clone();
+//                     sleep(Duration::new(60, 0));
+//                     app_state.limit_time-=1;
+//                     confy::store("pefapp", "appstate", app_state).unwrap();
+//                     *app_state_mem.lock().unwrap()=app_state;
+//                 }
+//             }
+//         });
+//     });
+// }
 pub fn run_timer(
-    app_state_mem: Arc<Mutex<AppState>>,
+    timer:ThreadTimer,
+    timer_receiver:Receiver<usize>,
+    time_sender:Sender<usize>,
 ){
     thread::spawn(move||{
         let rt  = Runtime::new().unwrap();
         rt.block_on(async {
             loop{
-                thread::sleep(Duration::from_millis(1));
-                if (*app_state_mem.lock().unwrap()).limit_time!=0{
-                    let mut app_state = (*app_state_mem.lock().unwrap()).clone();
-                    sleep(Duration::new(60, 0));
-                    app_state.limit_time-=1;
-                    confy::store("pefapp", "appstate", app_state).unwrap();
-                    *app_state_mem.lock().unwrap()=app_state;
+                thread::sleep(Duration::from_micros(1));
+                if let Ok(data)=timer_receiver.try_recv(){
+                    let time_sender = time_sender.clone();
+                    if timer.cancel().is_err(){
+                        timer.start(Duration::from_secs(60), move || {
+                            time_sender.send(data-1).unwrap();
+                         }).unwrap();
+                    }
+                    else{
+                        let time_sender = time_sender.clone();
+                        timer.start(Duration::from_secs(60), move || {
+                            time_sender.send(data-1).unwrap();
+                        }).unwrap();
+                    }
                 }
             }
         });
     });
 }
-// pub fn run_timer(
-//     app_state_mem: Arc<Mutex<AppState>>,
-// ){
-//     thread::spawn(move||{
-//         let rt  = Runtime::new().unwrap();
-//         rt.block_on(async {
-//             while  (*app_state_mem.lock().unwrap()).limit_time!=0{
-//                 let mut app_state = (*app_state_mem.lock().unwrap()).clone();
-//                 sleep(Duration::new(60, 0));
-//                 app_state.limit_time-=1;
-//                 confy::store("pefapp", "appstate", app_state).unwrap();
-//                 *app_state_mem.lock().unwrap()=app_state;
-//             }
-//         });
-//     });
-// }
+pub fn keypad_timer(
+    pad_timer:ThreadTimer,
+    k_timer_receiver:Receiver<u8>,
+    k_time_sender:Sender<u8>,
+){
+    thread::spawn(move||{
+        let rt  = Runtime::new().unwrap();
+        rt.block_on(async {
+            loop{
+                thread::sleep(Duration::from_micros(1));
+                if let Ok(data)=k_timer_receiver.try_recv(){
+                    let k_time_sender = k_time_sender.clone();
+                    if pad_timer.cancel().is_err(){
+                        pad_timer.start(Duration::from_secs(1), move || {
+                            k_time_sender.send(data-1).unwrap();
+                         }).unwrap();
+                    }
+                    else{
+                        let k_time_sender = k_time_sender.clone();
+                        pad_timer.start(Duration::from_secs(1), move || {
+                            k_time_sender.send(data-1).unwrap();
+                        }).unwrap();
+                    }
+                    
+                }
+            }
+        });
+    });
+}
 
 
 
@@ -106,6 +152,8 @@ pub fn serial_sender(recv: Receiver<RequestData>){
                 if let Ok(mut req_data)=recv.try_recv(){
                     req_data.getter();
                     req_data.checksum();
+                    println!("-------SENDDATA-----");
+                    req_data.is_checksum().unwrap();
                     let list = req_data.to_list();
                     tx.send(list).await.unwrap();
                 }
@@ -117,6 +165,7 @@ pub fn serial_sender(recv: Receiver<RequestData>){
 //시리얼수신 스레드
 pub fn serial_receiver(
     respone_mem: Arc<Mutex<Vec<RequestDataList>>>,
+    report_mem: Arc<Mutex<Vec<RequestDataList>>>,
     err_type: Arc<Mutex<ErrorList>>
 ){
     thread::spawn(move||{
@@ -141,30 +190,57 @@ pub fn serial_receiver(
                         let mut responese_data = RequestData::default();
                         //데이터 파싱확인
                         if let Ok(req_data)=responese_data.parser(&datalist){
-                            let ttt = format!("{:?}",datalist);
+                            // let ttt = format!("{:?}",datalist);
                             // info!("{}",ttt);
-                            *respone_mem.lock().unwrap()=req_data;
+
+                            
                             //체크섬과 에러타입을 화인
-                            if let Err(e)=responese_data.check_all(){
-                                match &e[..] {
-                                    "Over Limit"=>{
-                                        *err_type.lock().unwrap()=ErrorList::OverLimit;
-                                    },
-                                    "Non Response"=>{
-                                        *err_type.lock().unwrap()=ErrorList::NonResponse;
-                                    },
-                                    "CRC Error"=>{
-                                        *err_type.lock().unwrap()=ErrorList::CRCError;
-                                    },
-                                    "Fail checksum Err"=>{
-                                        *err_type.lock().unwrap()=ErrorList::CheckSumErr;
-                                    },
-                                    _=>{}
+                            
+                            // if req_data[4]==RequestDataList::COMMAND(0x02){
+                            //     *respone_mem.lock().unwrap()=req_data;
+                            // }
+                            if req_data[4]==RequestDataList::COMMAND(0x03){
+                                *report_mem.lock().unwrap()=req_data;
+                            }
+                            // else if req_data[4]==RequestDataList::COMMAND(0xE2){
+                            //     *report_mem.lock().unwrap()=req_data;
+                            // }
+                            // else if req_data[4]==RequestDataList::COMMAND(0xE3){
+                            //     *report_mem.lock().unwrap()=req_data;
+                            // }
+                            // else if req_data[4]==RequestDataList::COMMAND(0xE4){
+                            //     *report_mem.lock().unwrap()=req_data;
+                            // }
+                            // else if req_data[4]==RequestDataList::COMMAND(0xE2){
+                            //     *report_mem.lock().unwrap()=req_data;
+                            // }
+                            
+                            else if req_data[4]==RequestDataList::COMMAND(0x02){
+                                *respone_mem.lock().unwrap()=req_data;
+                                println!("-------REC DATA-----");
+                                if let Err(e)=responese_data.check_all(){
+                                    match &e[..] {
+                                        "Over Limit"=>{
+                                            *err_type.lock().unwrap()=ErrorList::OverLimit;
+                                        },
+                                        "Non Response"=>{
+                                            *err_type.lock().unwrap()=ErrorList::NonResponse;
+                                        },
+                                        "CRC Error"=>{
+                                            *err_type.lock().unwrap()=ErrorList::CRCError;
+                                        },
+                                        "Fail checksum Err"=>{
+                                            *err_type.lock().unwrap()=ErrorList::CheckSumErr;
+                                        },
+                                        _=>{}
+                                    }
+                                }
+                                else {
+                                    *err_type.lock().unwrap()=ErrorList::None;
                                 }
                             }
-                            else {
-                                *err_type.lock().unwrap()=ErrorList::None;
-                            }
+                            
+                            
                         }
                     }
                 }

@@ -82,16 +82,18 @@ impl UserUi {
         request:&mut RequestData,
         sender:&mut Sender<RequestData>,
         response:&Arc<Mutex<Vec<RequestDataList>>>,
-        sys_time:&Arc<Mutex<String>>,
+        report:&Arc<Mutex<Vec<RequestDataList>>>,
         app_state:&mut Arc<Mutex<AppState>>,
+        timer_sender:&mut Sender<usize>,
+        k_timer_sender:&mut Sender<u8>,
     )->InnerResponse<()>{
         egui::panel::CentralPanel::default().show(ctx, |ui| {
             match self.view_menu {
                 ViewList::Setting=>{
-                    content::setting_view(ui, ctx,self,pulse_info,vol_info,request,sender,response,app_state,);
+                    content::setting_view(ui, ctx,self,pulse_info,vol_info,request,sender,response,report,app_state,timer_sender,k_timer_sender);
                 },
                 ViewList::Main=>{
-                    main_view::main_view(ui, ctx, self,response,sys_time,app_state);
+                    main_view::main_view(ui, ctx, self,response,report,app_state);
                 }
             }
         })

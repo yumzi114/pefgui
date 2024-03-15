@@ -11,16 +11,18 @@ pub fn main_view(
     ctx: &egui::Context,
     uui:&mut UserUi, 
     response:&Arc<Mutex<Vec<RequestDataList>>>,
-    sys_time:&Arc<Mutex<String>>,
+    report:&Arc<Mutex<Vec<RequestDataList>>>,
     app_state:&mut Arc<Mutex<AppState>>,
 )->InnerResponse<()>{
     let mem = response.clone();
+    let report_mem=report.clone();
     // let app_state_mem = app_state.clone();
     uui.keypad.popon=false;
     uui.keypad.sellist=None;
     ui.vertical_centered(|ui|{
         ui.add_space(20.);
-        ui.label(RichText::new("Information").strong().size(100.0).color(Color32::from_rgb(38, 150, 255)));
+        ui.label(RichText::new("Information").strong().size(80.0).color(Color32::from_rgb(38, 150, 255)));
+        ui.add_space(20.);
         ui.columns(2, |columns| {
             //좌측 상태창
             columns[0].vertical_centered(|ui|{
@@ -40,7 +42,7 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = format!("{}",mem.lock().unwrap()[2]);
+                                let value = format!("{}",report_mem.lock().unwrap()[2]);
                                 ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
@@ -56,7 +58,7 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = if mem.lock().unwrap()[6]==RequestDataList::PULSE_ONOFF(1){"ON"}else{"OFF"};
+                                let value = if report_mem.lock().unwrap()[6]==RequestDataList::PULSE_ONOFF(1){"ON"}else{"OFF"};
                                 ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
@@ -72,7 +74,7 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = format!("{}",mem.lock().unwrap()[7]);
+                                let value = format!("{}",report_mem.lock().unwrap()[7]);
                                 ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
@@ -88,7 +90,7 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = format!("{}",mem.lock().unwrap()[8]);
+                                let value = format!("{}",report_mem.lock().unwrap()[8]);
                                 ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
@@ -104,7 +106,7 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = if mem.lock().unwrap()[10]==RequestDataList::HV_ONOFF(1){"ON"}else{"OFF"};
+                                let value = if report_mem.lock().unwrap()[10]==RequestDataList::HV_ONOFF(1){"ON"}else{"OFF"};
                                 ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
@@ -120,7 +122,7 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = format!("{}",mem.lock().unwrap()[11]);
+                                let value = format!("{}",report_mem.lock().unwrap()[11]);
                                 ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
@@ -149,7 +151,7 @@ pub fn main_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = format!("{}",mem.lock().unwrap()[14]);
+                                let value = format!("{}",report_mem.lock().unwrap()[14]);
                                 ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
