@@ -47,21 +47,27 @@ pub fn warring_window(center_rect:Pos2,ctx:&egui::Context, user_ui:&mut UserUi){
                     ui.add_space(50.);
                     let mut warning_file = egui::include_image!("../../files/error/yellow/basewarring.png");
                     let (temp_rect, _response) =ui.allocate_at_least(Vec2::new(950., 450.), Sense::click_and_drag());
-                    match &user_ui.status_str[..] {
-                        "Limit value (0 ~ 1000 Hz)"=>{
+                    match &user_ui.status_str[0..=4] {
+                        "Limit"=>{
                             warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
                         },
-                        "Limit value (0 ~ 100 ms)"=>{
+                        "Frequ"=>{
                             warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
                         },
-                        "Limit value (0 ~ 5000M)"=>{
-                            warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
-                            // warning_file=egui::include_image!("../../files/warningtest.png");
-                        }
-                        "Limit value (0 ~ 20 Kv)"=>{
-                            // warning_file=egui::include_image!("../../files/error/temp/vol_error.png");
-                            warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
-                        }
+                        // "Limit value (0 ~ 1000 Hz)"=>{
+                        //     warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
+                        // },
+                        // "Limit value (0 ~ 100 ms)"=>{
+                        //     warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
+                        // },
+                        // "Limit value (0 ~ 5000M)"=>{
+                        //     warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
+                        //     // warning_file=egui::include_image!("../../files/warningtest.png");
+                        // }
+                        // "Limit value (0 ~ 20 Kv)"=>{
+                        //     // warning_file=egui::include_image!("../../files/error/temp/vol_error.png");
+                        //     warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
+                        // }
                         _=>{
                             user_ui.warning_pop=false;
                         }

@@ -5,7 +5,7 @@ use pefapi::device::AppState;
 use super::{UserUi,MenuList};
 pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&mut UserUi, err_type:&Arc<Mutex<ErrorList>>,app_state:&mut Arc<Mutex<AppState>>,)->InnerResponse<()>{
     // let status_mem = uui.status_str.clone();
-    let err_mem = err_type.clone();
+    // let err_type = err_type.clone();
     
     ui.vertical_centered(|ui|{
         ui.horizontal_wrapped(|ui|{
@@ -16,7 +16,7 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                     let time = ".".repeat(dasd);
                     let mut status_string = String::new();
                     ui.add(egui::Label::new(RichText::new("      STATE : ").color(Color32::from_rgb(36, 101, 255)).strong().size(80.0)));
-                    match *err_mem.lock().unwrap() {
+                    match *err_type.lock().unwrap() {
                         ErrorList::CheckSumErr=>{
                             status_string="ResponseCheckSum Error".to_string();
                         },
@@ -48,12 +48,22 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                         Some(MenuList::PulseFreq)
                         // |Some(MenuList::PulseOffTime)
                         |Some(MenuList::PulseOnTime)
-                        |Some(MenuList::PulseOnTime)
+                        // |Some(MenuList::PulseOnTime)
                         |Some(MenuList::RunningTime)
                         |Some(MenuList::SetVoltage)=>{
-                            ui.label(RichText::new(&status_string).strong().size(80.0));
-                            if &status_string[status_string.len()-7..]=="Setting"{
-                                ui.add(egui::Spinner::new().size(50.));
+                            match  &status_string[0..=4]{
+                                "Limit"=>{
+                                    ui.label(RichText::new(&status_string).strong().size(80.0));
+                                },
+                                "Frequ"=>{
+                                    ui.label(RichText::new(&status_string).strong().size(50.0));
+                                },
+                                _=>{
+                                    ui.label(RichText::new(&status_string).strong().size(80.0));
+                                    if &status_string[status_string.len()-7..]=="Setting"{
+                                        ui.add(egui::Spinner::new().size(50.));
+                                    }
+                                }
                             }
                         }
                         _=>{

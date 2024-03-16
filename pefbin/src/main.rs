@@ -5,9 +5,10 @@ use eframe::{egui::{self, Pos2, Rounding, Sense, Vec2, ViewportBuilder}, Theme};
 mod interface;
 mod applog;
 mod component;
-mod app_error;
+
 mod app_threads;
-use app_error::ErrorList;
+
+use pefapi::app_error::ErrorList;
 use component::{setup_custom_fonts, warring_window};
 use app_threads::{ui_timer,run_timer,serial_receiver,serial_sender,socket_sender,keypad_timer};
 use crossbeam_channel::{unbounded,Receiver,Sender};
@@ -69,10 +70,12 @@ fn main() -> Result<(), eframe::Error> {
             serial_sender(recv);
             let respone_mem: Arc<Mutex<Vec<RequestDataList>>>= app.response.clone();
             let report_mem: Arc<Mutex<Vec<RequestDataList>>>= app.report.clone();
+            let err_report_mem =app.err_report.clone();
             let err_type: Arc<Mutex<ErrorList>> = app.err_type.clone();
+            let rep_err_type: Arc<Mutex<ErrorList>> = app.repo_err_type.clone();
             // let sys_time_mem: Arc<Mutex<String>> = app.sys_time.clone();
             // let _handle: log4rs::Handle = log4rs::init_config(logconfig((*sys_time_mem.lock().unwrap()).clone())).unwrap();
-            serial_receiver(respone_mem,report_mem,err_type,);
+            serial_receiver(respone_mem,report_mem,err_report_mem,err_type,rep_err_type);
             let state_mem= app.app_state.clone();
             let respone_mem= app.response.clone();
             // let socket_onoff=app.socket_onoff.clone();
@@ -113,6 +116,7 @@ struct PEFApp {
     app_state:Arc<Mutex<AppState>>,
     response:Arc<Mutex<Vec<RequestDataList>>>,
     report:Arc<Mutex<Vec<RequestDataList>>>,
+    err_report:Arc<Mutex<Vec<RequestDataList>>>,
     err_type:Arc<Mutex<ErrorList>>,
     repo_err_type:Arc<Mutex<ErrorList>>,
 }
@@ -144,8 +148,10 @@ impl PEFApp {
         let (tx, rx) = unbounded();
         let response=RequestData::default().to_list();
         let report = RequestData::default().to_list();
+        let err_report = RequestData::default().to_list();
         let respon_data = Arc::new(Mutex::new(response));
         let report = Arc::new(Mutex::new(report));
+        let err_report=Arc::new(Mutex::new(err_report));
         let err_type = Arc::new(Mutex::new(ErrorList::default()));
         let repo_err_type= Arc::new(Mutex::new(ErrorList::default()));
         // let time = chrono::offset::Local::now().format("%Y-%m-%d");
@@ -177,6 +183,7 @@ impl PEFApp {
             k_time_receiver,
             request,
             report,
+            err_report,
             app_sender:tx,
             app_receiver:rx,
             response:respon_data,
@@ -217,9 +224,10 @@ impl eframe::App for PEFApp {
                 self.timer_sender.send(data).unwrap();
             }
         }
+        //키패드타이머
         if let Ok(num)=self.k_time_receiver.try_recv(){
             self.k_time=num;
-            if num ==0{
+            if num ==0&&!self.mainui.warning_pop{
                 self.mainui.keypad.popon=false;
                 self.mainui.keypad.sellist=None;
             }
@@ -252,8 +260,10 @@ impl eframe::App for PEFApp {
                 &mut self.voltage,
                 &mut self.request,
                 &mut self.app_sender,
-                &mut self.response,
-                &mut self.report,
+                &self.response,
+                &self.report,
+                &self.err_report,
+                &self.repo_err_type,
                 &mut self.app_state,
                 &mut self.timer_sender,
                 &mut self.k_timer_sender,

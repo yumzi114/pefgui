@@ -1,5 +1,6 @@
+use app_error::ErrorList;
 use byteorder::{ReadBytesExt, WriteBytesExt, BigEndian, LittleEndian};
-use std::{borrow::BorrowMut, io::Cursor, ops::Index};
+use std::{borrow::BorrowMut, io::Cursor, ops::Index, sync::{Arc, Mutex}};
 
 use futures::{ StreamExt, SinkExt};
 use tokio_util::codec::{Decoder, Encoder};
@@ -10,6 +11,7 @@ use serde::{Serialize, Deserialize, de::value};
 use serde_hex::{SerHex,StrictPfx,CompactPfx};
 use defaults::Defaults;
 pub mod device;
+pub mod app_error;
 use device::{PulseInfo,VolatageInfo};
 use std::fmt;
 #[cfg(unix)]
@@ -122,7 +124,7 @@ impl fmt::Display for RequestDataList {
        match self {
             RequestDataList::START(value) => write!(f,"{}",value),
             RequestDataList::LENGHTH(value)=>write!(f, "{}",value),
-            RequestDataList::DEVICE_SN(value)=> write!(f,"{}",value),
+            RequestDataList::DEVICE_SN(value)=> write!(f,"{}NUM",value),
             RequestDataList::RESERVED(value)=> write!(f,"{}",value),
             RequestDataList::COMMAND(value)=> write!(f,"{}",value),
             RequestDataList::CHANGE_VALUE(value)=> write!(f,"{}",value),
@@ -264,6 +266,12 @@ impl RequestData {
             return Err("Fail Parsing".to_string());
         }
     }
+    pub fn error_to_list(&mut self)->Vec<RequestDataList>{
+        Self{
+            ..Default::default()
+        };
+        self.to_list()
+    }
     //리스트로 반환
     pub fn to_list(&self)->Vec<RequestDataList>
     {
@@ -353,18 +361,64 @@ impl RequestData {
             0xE1=>Err("Non Response".to_string()),
             0xE2=>Err("CRC Error".to_string()),
             //임시에러
-            0xE3=>Err("Not Start".to_string()),
-            0xE4=>Err("Not DD".to_string()),
+            // 0xE3=>Err("Not Start".to_string()),
+            // 0xE4=>Err("Not DD".to_string()),
             0x01|0x02|0x03=>Ok("success".to_string()),
             _=>{
                 Err("unknown".to_string())
             }
         }
     }
-    pub fn check_all(&self)->Result<String,String>{
-        self.is_err_response()?;
-        self.is_checksum()?;
-        Ok("success".to_string())
+    // pub fn check_all(&self)->Result<String,String>{
+    //     self.is_err_response()?;
+    //     self.is_checksum()?;
+    //     Ok("success".to_string())
+    // }
+    pub fn check_all(&mut self, err_type: Arc<Mutex<ErrorList>>,repo_err_type: Arc<Mutex<ErrorList>>)->Result<(u8),(u8)>{
+        if let Err(s)=self.is_err_response(){
+            match &s[..] {
+                "Over Limit"=>{
+                    //error mem
+                    *err_type.lock().unwrap()=ErrorList::OverLimit;
+                    return Err(self.command);
+                },
+                "Non Response"=>{
+                    //error mem
+                    *err_type.lock().unwrap()=ErrorList::NonResponse;
+                    return Err(self.command);
+                },
+                "CRC Error"=>{
+                    //error mem
+                    *err_type.lock().unwrap()=ErrorList::CRCError;
+                    return Err(self.command);
+                },
+                _=>{
+
+                }
+            }
+            //error_mem
+        };
+        if let Err(s)=self.is_checksum(){
+            match self.command{
+                0x02=>{
+                    *err_type.lock().unwrap()=ErrorList::CheckSumErr;
+                    return Err(self.command);
+                },
+                0x03=>{
+                    *repo_err_type.lock().unwrap()=ErrorList::RepoCheckSumErr;
+                    return Err(self.command);
+                    //repo_mem
+                },
+                _=>{
+                    return Err(self.command);
+                }
+            }
+        };
+        *err_type.lock().unwrap()=ErrorList::None;
+        *repo_err_type.lock().unwrap()=ErrorList::None;
+        // self.is_err_response()?;
+        // self.is_checksum()?;
+        Ok(self.command)
     }
 }
 

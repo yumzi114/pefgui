@@ -12,7 +12,8 @@ use std::sync::mpsc::channel;
 use futures_timer::Delay;
 use tungstenite::{connect, stream::MaybeTlsStream, Message, WebSocket};
 use thread_timer::ThreadTimer;
-use crate::app_error::ErrorList;
+use pefapi::app_error::ErrorList;
+// use crate::app_error::ErrorList;
 
 
 
@@ -88,7 +89,7 @@ pub fn run_timer(
                 thread::sleep(Duration::from_micros(1));
                 if let Ok(data)=timer_receiver.try_recv(){
                     let time_sender = time_sender.clone();
-                    if timer.cancel().is_err(){
+                    if timer.cancel().is_ok(){
                         timer.start(Duration::from_secs(60), move || {
                             time_sender.send(data-1).unwrap();
                          }).unwrap();
@@ -116,15 +117,25 @@ pub fn keypad_timer(
                 thread::sleep(Duration::from_micros(1));
                 if let Ok(data)=k_timer_receiver.try_recv(){
                     let k_time_sender = k_time_sender.clone();
-                    if pad_timer.cancel().is_err(){
+                    if pad_timer.cancel().is_ok(){
                         pad_timer.start(Duration::from_secs(1), move || {
-                            k_time_sender.send(data-1).unwrap();
+                            if data!=0{
+                                k_time_sender.send(data-1).unwrap();
+                            }
+                            else{
+                                k_time_sender.send(0).unwrap();
+                            }
                          }).unwrap();
                     }
                     else{
                         let k_time_sender = k_time_sender.clone();
                         pad_timer.start(Duration::from_secs(1), move || {
-                            k_time_sender.send(data-1).unwrap();
+                            if data!=0{
+                                k_time_sender.send(data-1).unwrap();
+                            }
+                            else{
+                                k_time_sender.send(0).unwrap();
+                            }
                         }).unwrap();
                     }
                     
@@ -166,7 +177,9 @@ pub fn serial_sender(recv: Receiver<RequestData>){
 pub fn serial_receiver(
     respone_mem: Arc<Mutex<Vec<RequestDataList>>>,
     report_mem: Arc<Mutex<Vec<RequestDataList>>>,
-    err_type: Arc<Mutex<ErrorList>>
+    err_report_mem: Arc<Mutex<Vec<RequestDataList>>>,
+    err_type: Arc<Mutex<ErrorList>>,
+    repo_err_type: Arc<Mutex<ErrorList>>,
 ){
     thread::spawn(move||{
         let task  = Runtime::new().unwrap();
@@ -177,7 +190,7 @@ pub fn serial_receiver(
             port.set_exclusive(false)
                 .expect("Unable to set serial port exclusive to false");
             let mut reader =LineCodec.framed(port);
-            let time = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
+            // let time = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
             loop{
                 // if *sys_time_mem.lock().unwrap()!=time{
                 //     _handle.set_config(logconfig(time.clone()));
@@ -190,55 +203,60 @@ pub fn serial_receiver(
                         let mut responese_data = RequestData::default();
                         //데이터 파싱확인
                         if let Ok(req_data)=responese_data.parser(&datalist){
-                            // let ttt = format!("{:?}",datalist);
-                            // info!("{}",ttt);
-
                             
-                            //체크섬과 에러타입을 화인
-                            
-                            // if req_data[4]==RequestDataList::COMMAND(0x02){
-                            //     *respone_mem.lock().unwrap()=req_data;
-                            // }
-                            if req_data[4]==RequestDataList::COMMAND(0x03){
-                                *report_mem.lock().unwrap()=req_data;
-                            }
-                            // else if req_data[4]==RequestDataList::COMMAND(0xE2){
-                            //     *report_mem.lock().unwrap()=req_data;
-                            // }
-                            // else if req_data[4]==RequestDataList::COMMAND(0xE3){
-                            //     *report_mem.lock().unwrap()=req_data;
-                            // }
-                            // else if req_data[4]==RequestDataList::COMMAND(0xE4){
-                            //     *report_mem.lock().unwrap()=req_data;
-                            // }
-                            // else if req_data[4]==RequestDataList::COMMAND(0xE2){
-                            //     *report_mem.lock().unwrap()=req_data;
-                            // }
-                            
-                            else if req_data[4]==RequestDataList::COMMAND(0x02){
-                                *respone_mem.lock().unwrap()=req_data;
-                                println!("-------REC DATA-----");
-                                if let Err(e)=responese_data.check_all(){
-                                    match &e[..] {
-                                        "Over Limit"=>{
-                                            *err_type.lock().unwrap()=ErrorList::OverLimit;
-                                        },
-                                        "Non Response"=>{
-                                            *err_type.lock().unwrap()=ErrorList::NonResponse;
-                                        },
-                                        "CRC Error"=>{
-                                            *err_type.lock().unwrap()=ErrorList::CRCError;
-                                        },
-                                        "Fail checksum Err"=>{
-                                            *err_type.lock().unwrap()=ErrorList::CheckSumErr;
-                                        },
-                                        _=>{}
+                            match responese_data.check_all(err_type.clone(),repo_err_type.clone()) {
+                                Ok(command)=>{
+                                    if command==0x03{
+                                        let dd =  RequestData::default();
+                                        let clear = dd.to_list();
+                                        *err_report_mem.lock().unwrap()=clear;
+                                        *report_mem.lock().unwrap()=req_data;
+                                    }
+                                    else if command==0x02{
+                                        *respone_mem.lock().unwrap()=req_data;
+                                    }
+                                },
+                                Err(command)=>{
+                                    if command==0x03{
+                                        let dd =  RequestData::default();
+                                        let clear = dd.to_list();
+                                        *report_mem.lock().unwrap()=clear;
+                                        *err_report_mem.lock().unwrap()=req_data;
+                                    }
+                                    else if command==0x02{
+                                        *respone_mem.lock().unwrap()=req_data;
                                     }
                                 }
-                                else {
-                                    *err_type.lock().unwrap()=ErrorList::None;
-                                }
+                                // _=>{}
                             }
+                            // if req_data[4]==RequestDataList::COMMAND(0x03){
+                            //     *report_mem.lock().unwrap()=req_data;
+                            //     println!("-------REPORT DATA-----");
+                            // }
+                            // else if req_data[4]==RequestDataList::COMMAND(0x02){
+                            //     *respone_mem.lock().unwrap()=req_data;
+                            //     println!("-------RESPONE DATA-----");
+                            //     if let Err(e)=responese_data.check_all(){
+                            //         match &e[..] {
+                            //             "Over Limit"=>{
+                            //                 *err_type.lock().unwrap()=ErrorList::OverLimit;
+                            //             },
+                            //             "Non Response"=>{
+                            //                 *err_type.lock().unwrap()=ErrorList::NonResponse;
+                            //             },
+                            //             "CRC Error"=>{
+                            //                 *err_type.lock().unwrap()=ErrorList::CRCError;
+                            //             },
+                            //             "Fail checksum Err"=>{
+                            //                 *err_type.lock().unwrap()=ErrorList::CheckSumErr;
+                            //             },
+                            //             _=>{}
+                            //         }
+                            //     }
+                            //     else {
+                            //         *err_type.lock().unwrap()=ErrorList::None;
+                            //     }
+                            // }
                             
                             
                         }

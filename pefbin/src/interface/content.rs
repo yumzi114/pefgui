@@ -5,7 +5,7 @@ use eframe::{egui::{Ui, self, InnerResponse, RichText, Sense, TextFormat, Pointe
 use egui_extras::{TableBuilder, Column};
 use pefapi::{device::AppState, LineCodec, RequestData, RequestDataList};
 use super::{UserUi,MenuList,PulseInfo,VolatageInfo,};
-use crate::{keypad_view};
+use crate::keypad_view;
 pub fn setting_view(
     ui: &mut Ui,
     ctx: &egui::Context,
@@ -19,19 +19,22 @@ pub fn setting_view(
     app_state:&mut Arc<Mutex<AppState>>,
     timer_sender:&mut Sender<usize>,
     k_timer_sender:&mut Sender<u8>,
+
     // sys_time:&Arc<Mutex<String>>
 )->InnerResponse<()>{
     // let mem = response.clone();
     
-    let app_state_mem = app_state.clone();
+    // let app_state = app_state.clone();
     if uui.warning_pop{
         ui.set_enabled(false);
     }
+    
     ui.vertical_centered(|ui|{
+        
         ui.columns(2, |columns|{
             //좌측패널 컴퍼넌트
             columns[0].vertical_centered(|ui|{
-                ui.add_space(100.);
+                ui.add_space(60.);
                 ui.columns(2, |columns|{
                     columns[0].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("High Voltage").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
@@ -47,7 +50,8 @@ pub fn setting_view(
                         });
                         
                         let value = format!("Device : {}",report.lock().unwrap()[11]);
-                        ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        // ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,value.as_str(),true);
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("Pulse Frequency").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
@@ -62,7 +66,8 @@ pub fn setting_view(
                             }
                         });
                         let value = format!("Device : {}",report.lock().unwrap()[7]);
-                        ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        // ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,value.as_str(),true);
                     });
                 });
                 ui.add_space(60.);
@@ -95,13 +100,14 @@ pub fn setting_view(
                             
                         });
                         let value = format!("Device : {}",report.lock().unwrap()[8]);
-                        ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,value.as_str(),true);
+                        // ui.label(RichText::new(value).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("Running Time").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                         ui.horizontal_wrapped(|ui|{
                             ui.add_space(20.);
-                            let b_response = button_respone(ui, uui, &MenuList::RunningTime, format!("{} M",(*app_state_mem.lock().unwrap()).set_time.to_string()));
+                            let b_response = button_respone(ui, uui, &MenuList::RunningTime, format!("{} M",(*app_state.lock().unwrap()).set_time.to_string()));
                             
                             if b_response.clicked(){
                                 uui.set_value.clear();
@@ -110,15 +116,28 @@ pub fn setting_view(
                                 click_voltage(uui,MenuList::RunningTime,pos,k_timer_sender);
                             }
                         });
-                        if (*app_state_mem.lock().unwrap()).set_time>0{
-                            ui.label(RichText::new(
-                                format!("Limit Time : {}",(*app_state_mem.lock().unwrap()).limit_time.to_string())
-                            ).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                        // match (*app_state.lock().unwrap()).set_time{
+                        //     1..=5000=>{
+                                
+                        //         let value = format!("Limit Time : {}",(*app_state.lock().unwrap()).limit_time.to_string());
+                        //         job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,value.as_str(),true);
+                        //     }
+                        //     _=>{
+                        //         job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,"Set Time : None",true);
+                        //     }
+                        // }
+                        if (*app_state.lock().unwrap()).set_time>0{
+                            let value = format!("Limit Time : {}",(*app_state.lock().unwrap()).limit_time.to_string());
+                            job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,value.as_str(),true);
+                            // ui.label(RichText::new(
+                            //     format!("Limit Time : {}",(*app_state.lock().unwrap()).limit_time.to_string())
+                            // ).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                         }
                         else {
-                            ui.label(RichText::new("Set Time : None").strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
+                            job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,"Set Time : None",true);
+                            // ui.label(RichText::new("Set Time : None").strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                         }
-                        // match (*app_state_mem.lock().unwrap()).set_time {
+                        // match (*app_state.lock().unwrap()).set_time {
                         //     Some(time)=>{
                         //         ui.label(RichText::new(
                         //             format!("Set Time : {}",time.to_string())
@@ -134,9 +153,12 @@ pub fn setting_view(
             //우측패널 컴퍼넌트
             columns[1].vertical_centered(|ui|{
                 if !uui.keypad.popon{
-                    ui.add_space(95.);
+                    ui.add_space(40.);
+                    ui.label(RichText::new("Monitoring").strong().size(45.0).color(Color32::from_rgb(255, 200, 36)));
+                    ui.add_space(20.);
                     ui.push_id(1, |ui| {
                         TableBuilder::new(ui)
+
                         .cell_layout(egui::Layout::top_down(egui::Align::Center))
                         .striped(false)
                         .column(Column::remainder())
@@ -144,34 +166,49 @@ pub fn setting_view(
                         .header(60.0, |mut header| {
                             header.col(|ui| {
                                 ui.add_space(10.0);
-                                ui.label(RichText::new("High Voltage").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
+                                // ui.label(RichText::new("High Voltage").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
+                                ui.label(RichText::new("High Voltage").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                
                             });
                             header.col(|ui| {
                                 ui.add_space(10.0);
-                                ui.label(RichText::new("Pulse").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
+                                // ui.label(RichText::new("Pulse").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
+                                ui.label(RichText::new("Pulse").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                         })
                         .body(|mut body| {
                             body.row(140.0, |mut row| {
                                 row.col(|ui| {
                                     ui.add_space(10.0);
-                                    if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(vol_info.power))).clicked(){
-                                        vol_info.power=!vol_info.power;
-                                        vol_info.save(request,sender);
-                                    };
+                                    // if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(vol_info.power))).clicked(){
+                                    //     vol_info.power=!vol_info.power;
+                                    //     vol_info.save(request,sender);
+                                    // };
+                                    if report.lock().unwrap()[6]==RequestDataList::PULSE_ONOFF(1){
+                                        ui.add_sized([120.0, 120.0], egui::Image::new(egui::include_image!("../../files/pngegg2.png")));
+                                    }
+                                    else{
+                                        ui.add_sized([120.0, 120.0], egui::Image::new(egui::include_image!("../../files/pngegg.png")));
+                                    }
                                 });
                                 row.col(|ui| {
                                     ui.add_space(10.0);
-                                    if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(pulse_info.power))).clicked(){
-                                        pulse_info.power=!pulse_info.power;
-                                        pulse_info.save(request,sender);
-                                    };
+                                    // if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(pulse_info.power))).clicked(){
+                                    //     pulse_info.power=!pulse_info.power;
+                                    //     pulse_info.save(request,sender);
+                                    // };
+                                    if report.lock().unwrap()[10]==RequestDataList::HV_ONOFF(1){
+                                        ui.add_sized([120.0, 120.0], egui::Image::new(egui::include_image!("../../files/pngegg2.png")));
+                                    }
+                                    else{
+                                        ui.add_sized([120.0, 120.0], egui::Image::new(egui::include_image!("../../files/pngegg.png")));
+                                    }
                                 });
                             });
                         })
                     });
                     ui.add_space(15.);
-                    ui.label(RichText::new("Monitoring").strong().size(45.0).color(Color32::from_rgb(255, 200, 36)));
+                    // ui.label(RichText::new("Monitoring").strong().size(45.0).color(Color32::from_rgb(255, 200, 36)));
                     ui.push_id(2, |ui| {
                         TableBuilder::new(ui)
                         .cell_layout(egui::Layout::top_down(egui::Align::Center))
@@ -216,9 +253,9 @@ pub fn setting_view(
                                 row.col(|ui| {
                                     ui.add_space(10.);
                                     
-                                    if (*app_state_mem.lock().unwrap()).limit_time>0{
+                                    if (*app_state.lock().unwrap()).limit_time>0{
                                         ui.label(RichText::new(
-                                            (*app_state_mem.lock().unwrap()).get_limit_time_fmt()
+                                            (*app_state.lock().unwrap()).get_limit_time_fmt()
                                         ).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                                     }
                                     else {
@@ -231,7 +268,7 @@ pub fn setting_view(
                     });
                     
                 }else {
-                    ui.add_space(50.);
+                    ui.add_space(30.);
                     keypad_view(
                         ui, 
                         ctx, 
@@ -271,10 +308,39 @@ fn click_voltage(uui:&mut UserUi, selmenu:MenuList, get_pos:Pos2,k_timer_sender:
 
 //버튼 클릭색상처리
 fn button_respone(ui: &mut Ui, uui:&UserUi, check_sel:&MenuList,value_str:String)->egui::Response{
+
+    // let size = if *check_sel==MenuList::PulseOnTime{90_f32}else{90_f32};
+    let size = if value_str.len()>=7{65_f32}else{90_f32};
+    // let mut job = LayoutJob::single_section(value_str.clone().to_string(), 
+    //     TextFormat{
+    //         color: Color32::WHITE,
+    //         font_id: FontId::proportional(size),
+            
+    //         ..Default::default()
+    //     });
+    //     job.wrap = TextWrapping {
+    //         // max_width:1.,
+    //         max_rows: 1,
+    //         break_anywhere: false,
+    //         overflow_character: Some('…'),
+    //         ..Default::default()
+    //     };
+    // ui.style_mut().spacing.item_spacing = vec2(150.0, 16.0);
     let b_response: egui::Response = 
     if uui.keypad.sellist==Some(*check_sel){
+        // ui.add_sized([420.0, 130.0], egui::Button::new(
+        //     job
+        //     // RichText::new(value_str).strong().size(size)
+        // )
+        //     // .min_size(Vec2{x:420.0,y:130.0})
+        //     .wrap(true)
+        //     .sense(Sense::click())
+        //     .fill(Color32::from_rgb(133, 255, 115))
+        //     .rounding(egui::Rounding{nw:40.,ne:40.,sw:40.,se:40.,}))
         ui.add(egui::Button::new(
-            RichText::new(value_str).strong().size(90.0))
+            // job
+            RichText::new(value_str).strong().size(size)
+        )
             .min_size(Vec2{x:420.0,y:130.0})
             .sense(Sense::click())
             .fill(Color32::from_rgb(133, 255, 115))
@@ -282,9 +348,18 @@ fn button_respone(ui: &mut Ui, uui:&UserUi, check_sel:&MenuList,value_str:String
         )
     }
     else {
+        // ui.add_sized([420.0, 130.0], egui::Button::new(
+        //     job
+            // RichText::new(value_str).strong().size(size)
+        // )
+        //     // .min_size(Vec2{x:420.0,y:130.0})
+        //     .wrap(true)
+        //     .sense(Sense::click())
+        //     .rounding(egui::Rounding{nw:40.,ne:40.,sw:40.,se:40.,}))
         ui.add(egui::Button::new(
-            RichText::new(value_str)
-            .strong().size(90.0))
+            // job
+            RichText::new(value_str).strong().size(size)
+        )
             .min_size(Vec2{x:420.0,y:130.0})
             .rounding(egui::Rounding{nw:40.,ne:40.,sw:40.,se:40.,})
             .sense(Sense::click())
@@ -298,4 +373,28 @@ fn check_on(on_off:bool)->eframe::egui::Image<'static>{
         false=>{egui::Image::new(egui::include_image!("../../files/pngegg.png")).rounding(360.0)},
         true=>{egui::Image::new(egui::include_image!("../../files/pngegg2.png")).rounding(360.0)} 
      }
+}
+
+fn job_textwarp(ui:&mut egui::Ui,color: Color32,size:f32,text:&str,hover:bool)->egui::Response{
+    let mut job = LayoutJob::single_section(text.clone().to_string(), 
+        TextFormat{
+            font_id: FontId::proportional(size),
+            color: color,
+            ..Default::default()
+        });
+        job.wrap = TextWrapping {
+            max_rows: 1,
+            break_anywhere: false,
+            overflow_character: Some('…'),
+            ..Default::default()
+        };
+    if hover{
+        // ui.label(egui::RichText::new(job).color(color)).on_hover_text(text)
+        ui.label(job).on_hover_ui(|ui|{
+            ui.label(RichText::new(text).strong().size(75.));
+        })
+    }else {
+        // ui.label(egui::RichText::new(job).color(color))
+        ui.label(job)
+    }
 }

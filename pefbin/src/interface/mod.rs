@@ -83,6 +83,8 @@ impl UserUi {
         sender:&mut Sender<RequestData>,
         response:&Arc<Mutex<Vec<RequestDataList>>>,
         report:&Arc<Mutex<Vec<RequestDataList>>>,
+        err_report:&Arc<Mutex<Vec<RequestDataList>>>,
+        repo_error:&Arc<Mutex<ErrorList>>,
         app_state:&mut Arc<Mutex<AppState>>,
         timer_sender:&mut Sender<usize>,
         k_timer_sender:&mut Sender<u8>,
@@ -93,7 +95,7 @@ impl UserUi {
                     content::setting_view(ui, ctx,self,pulse_info,vol_info,request,sender,response,report,app_state,timer_sender,k_timer_sender);
                 },
                 ViewList::Main=>{
-                    main_view::main_view(ui, ctx, self,response,report,app_state);
+                    main_view::main_view(ui, ctx, self,response,report,err_report,repo_error,app_state);
                 }
             }
         })
