@@ -99,7 +99,7 @@ fn device_on_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = format!("{}",report.lock().unwrap()[7]);
+                                let value = format!("{}",report.lock().unwrap()[9]);
                                 ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
@@ -147,7 +147,7 @@ fn device_on_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = format!("{}",report.lock().unwrap()[11]);
+                                let value = format!("{}",report.lock().unwrap()[12]);
                                 ui.label(RichText::new(value).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                             if row.response().drag_released(){
@@ -238,7 +238,7 @@ fn device_on_view(
                             row.col(|ui| {
                                 ui.add_space(15.);
                                 
-                                let value = if response.lock().unwrap()[13]==RequestDataList::OPEN_SENSOR_MONI(1){"OPEN"}else{"CLOSE"};
+                                let value = if report.lock().unwrap()[13]==RequestDataList::OPEN_SENSOR_MONI(1){"OPEN"}else{"CLOSE"};
                                 // let value = format!("{}",);
                                 ui.label(RichText::new(value.to_owned()).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
@@ -324,7 +324,7 @@ pub fn device_off_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = format!("{}",report.lock().unwrap()[7]);
+                                let value = format!("{}",report.lock().unwrap()[9]);
                                 ui.label(RichText::new(value).strong().size(45.0).color(Color32::RED));
                             });
                             if row.response().drag_released(){
@@ -372,7 +372,7 @@ pub fn device_off_view(
                             });
                             row.col(|ui| {
                                 ui.add_space(15.);
-                                let value = format!("{}",report.lock().unwrap()[11]);
+                                let value = format!("{}",report.lock().unwrap()[12]);
                                 ui.label(RichText::new(value).strong().size(45.0).color(Color32::RED));
                             });
                             if row.response().drag_released(){
@@ -418,7 +418,7 @@ pub fn device_off_view(
                             row.col(|ui| {
                                 ui.add_space(15.);
                                 
-                                let value = if response.lock().unwrap()[13]==RequestDataList::OPEN_SENSOR_MONI(1){"OPEN"}else{"CLOSE"};
+                                let value = if report.lock().unwrap()[13]==RequestDataList::OPEN_SENSOR_MONI(1){"OPEN"}else{"CLOSE"};
                                 // let value = format!("{}",);
                                 ui.label(RichText::new(value.to_owned()).strong().size(45.0).color(Color32::RED));
                             });

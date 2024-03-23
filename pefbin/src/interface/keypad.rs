@@ -114,8 +114,9 @@ pub fn keypad_view(
                     if ui.add(egui::Button::new(RichText::new("Set").color(egui::Color32::BLACK).strong().size(50.0)).min_size(Vec2::new(180., 242.5)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         match selmenu {
                             Some(MenuList::PulseFreq)=>{
-                                if setvalue.parse::<u64>().unwrap_or(0) >1000{
-                                    *status_str="Limit value (0 ~ 1000 Hz)".to_string();
+                                if setvalue.parse::<u64>().unwrap_or(0) >1000||
+                                setvalue.parse::<u64>().unwrap_or(0) <250&&setvalue.parse::<u64>().unwrap_or(0)>=1{
+                                    *status_str="Limit value (250 ~ 1000 Hz)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
                                 }else {
@@ -123,10 +124,13 @@ pub fn keypad_view(
                                     pulse.freq_value=setvalue.parse::<u16>().unwrap_or(0);
                                     // pulse.save(request,sender);
                                     pulse.max_value_change();
+                                    if setvalue.parse::<u64>().unwrap_or(0)==0{
+                                        pulse.save(request,sender);
+                                    }
                                     if let Some(value)=pulse.max_time_value{
                                         if pulse.on_time_value >=u16::from(value){
                                             pulse.on_time_value=0;
-                                            *status_str=format!("Frequency Value out of range (1 ~ {}ms)",value-1);
+                                            *status_str=format!("Frequency Value out of range (1 ~ {}us)",value-1);
                                             *warring_open=true;
                                             
                                             setvalue.clear();
@@ -158,10 +162,11 @@ pub fn keypad_view(
                             },
                             Some(MenuList::PulseOnTime)=>{
                                 if let Some(value)=pulse.max_time_value{
-                                    if setvalue.parse::<u64>().unwrap_or(0) >=u64::from(value){
+                                    if setvalue.parse::<u64>().unwrap_or(0) >=u64::from(value)||
+                                    setvalue.parse::<u64>().unwrap_or(0) <1{
                                         
                                         // *status_str="Limit value (0 ~  ms)".to_string();
-                                        *status_str=format!("Frequency Value out of range (1 ~ {}ms)",value-1);
+                                        *status_str=format!("Frequency Value out of range (1 ~ {}us)",value-1);
                                         // *status_str=format!("Limit value (1 ~ {}ms)",value-1);
                                         *warring_open=true;
                                         setvalue.clear();
@@ -202,8 +207,9 @@ pub fn keypad_view(
                                 k_timer_sender.send(5).unwrap();
                             },
                             Some(MenuList::SetVoltage)=>{
-                                if setvalue.parse::<u64>().unwrap_or(0) >20{
-                                    *status_str="Limit value (0 ~ 20 Kv)".to_string();
+                                if setvalue.parse::<u64>().unwrap_or(0) >20
+                                ||setvalue.parse::<u64>().unwrap_or(0) <4&&setvalue.parse::<u64>().unwrap_or(0)>=1{
+                                    *status_str="Limit value (4 ~ 20 Kv)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
                                 }else {

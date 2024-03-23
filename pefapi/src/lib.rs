@@ -1,7 +1,7 @@
 use app_error::ErrorList;
-use byteorder::{ReadBytesExt, WriteBytesExt, BigEndian, LittleEndian};
+use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
+use bytebuffer::ByteBuffer;
 use std::{borrow::BorrowMut, io::Cursor, ops::Index, sync::{Arc, Mutex}};
-
 use futures::{ StreamExt, SinkExt};
 use tokio_util::codec::{Decoder, Encoder};
 use tokio_serial::{SerialPortBuilderExt, SerialPort, StopBits};
@@ -37,8 +37,9 @@ impl Decoder for LineCodec {
         if let Some(n) = start {
             let line = src.split_to(n+1);
             let line_list = line.to_vec();
+            println!("-수신전 BUFFER-{:?}",line_list);
             if line_list.len()==36&&line_list[0]==0xAF&&line_list[1]==33{
-                println!("-BUFFER-{:?}",line_list);
+                println!("-수신된 BUFFER-{:?}",line_list);
                 println!("-LEN-{:?}",line_list.len());
                 return Ok(Some(line_list));
             }
@@ -76,16 +77,34 @@ impl Encoder<Vec<RequestDataList>> for LineCodec {
                 RequestDataList::HV_MONI(data)|
                 RequestDataList::POWER_CONSUM_MONI(data)
                 =>{
-                    buf.put_u16(data);
+                    let mut bufd = [0; 2];
+                    BigEndian::write_u16(&mut bufd, data);
+                    bufd.map(|x|buf.put_u8(x));
+                    // buf.put_u16(data);
                 },
                 RequestDataList::L_RESERVED(data)|
                 RequestDataList::L2_RESERVED(data)
                 =>{
-                    buf.put_u32(data);
+                    let mut bufd = [0; 4];
+                    BigEndian::write_u32(&mut bufd, data);
+                    bufd.map(|x|buf.put_u8(x));
+                    // buf.put_u32(data);
                 },
                 RequestDataList::SET_PULSE_TIME(data)
                 =>{
-                    data.map(|x|buf.put_u16(x));
+                    for (num, i) in data.iter().enumerate(){
+                        if num==0{
+                            let mut bufd = [0; 2];
+                            BigEndian::write_u16(&mut bufd, *i);
+                            bufd.map(|x|buf.put_u8(x));
+                        }
+                        if num==1{
+                            let mut bufd = [0; 2];
+                            LittleEndian::write_u16(&mut bufd, *i);
+                            bufd.map(|x|buf.put_u8(x));
+                        }
+                    }
+                    // data.map(|x|buf.put_u16(x));
                 }
                 _=>{
                     continue;
@@ -124,7 +143,7 @@ impl fmt::Display for RequestDataList {
        match self {
             RequestDataList::START(value) => write!(f,"{}",value),
             RequestDataList::LENGHTH(value)=>write!(f, "{}",value),
-            RequestDataList::DEVICE_SN(value)=> write!(f,"{}NUM",value),
+            RequestDataList::DEVICE_SN(value)=> write!(f,"{}",value),
             RequestDataList::RESERVED(value)=> write!(f,"{}",value),
             RequestDataList::COMMAND(value)=> write!(f,"{}",value),
             RequestDataList::CHANGE_VALUE(value)=> write!(f,"{}",value),
@@ -213,15 +232,17 @@ impl RequestData {
     pub fn into_change_value(&mut self, change_value:ChageList){
         let c_value:u16 = match change_value {
             
-            ChageList::Pulse_ON_OFF_Time=>0b0000_0000_1000_0000,
+            ChageList::Pulse_ON_OFF_Time=>0b0000_0000_0000_0010,
             //
             ChageList::Pulse_ON_OFF=>0b0000_0000_0001_0000,
-            ChageList::PulseFreq=>0b0000_0000_1000_0000,
+            ChageList::PulseFreq=>0b0000_0000_0000_1000,
             ChageList::HighVol_ON_OFF=>0b0000_0000_0000_0100,
 
-            ChageList::HighVolValue=>0b0000_0000_0000_0010,
+            ChageList::HighVolValue=>0b0000_0000_0000_0001,
         };
-        self.change_value=c_value;
+        // self.change_value=c_value;
+        // self.change_value+=c_value;
+        c_value.to_be_bytes().map(|x|self.change_value+=u16::from(x));
         self.checksum();
     }
     pub fn getter(&mut self){
@@ -230,7 +251,8 @@ impl RequestData {
         //pulse set
         self.pulse_onoff=if pulse_info.power {1}else{0};
         self.set_pulse_freq=pulse_info.freq_value as u16;
-        self.set_pulse_time[0]=pulse_info.on_time_value as u16;
+        // self.set_pulse_time[0]=pulse_info.on_time_value as u16;
+        self.set_pulse_time[0]=pulse_info.pwm.unwrap() as u16;
         self.set_pulse_time[1]=pulse_info.off_time_value as u16;
         //voltage set
         self.hv_onoff=if vol_info.power{1}else{0};
@@ -239,25 +261,43 @@ impl RequestData {
     pub fn parser(&mut self, buf: &Vec<u8>)->Result<Vec<RequestDataList>,String>{
   
         if buf.len()==36{
-            self.start=buf[0] as u8;
-            self.length=buf[1] as u8;
+  
+            self.length=u8::from_be_bytes([buf[1]]);
+   
             self.device_sn=u16::from_be_bytes([buf[2],buf[3]]);
+       
             self.reserved=u16::from_be_bytes([buf[4],buf[5]]);
-            self.command=buf[6] as u8;
+       
+            self.command=u8::from_be_bytes([buf[6]]);
+
             self.change_value=u16::from_be_bytes([buf[7],buf[8]]);
-            self.pulse_onoff=buf[9] as u8;
+       
+            self.pulse_onoff=u8::from_be_bytes([buf[9]]);
+    
             self.set_pulse_freq=u16::from_be_bytes([buf[10],buf[11]]);
+   
             self.set_pulse_time=[
+ 
                 u16::from_be_bytes([buf[12],buf[13]]),
-                u16::from_be_bytes([buf[14],buf[15]])
+          
+                u16::from_le_bytes([buf[14],buf[15]])
             ];
+       
             self.pulse_moni=u16::from_be_bytes([buf[16],buf[17]]);
+      
             self.hv_onoff=buf[18] as u8;
+       
             self.set_vol=u16::from_be_bytes([buf[19],buf[20]]);
+      
+ 
             self.hv_moni=u16::from_be_bytes([buf[21],buf[22]]);
+      
             self.o_sens_moni=buf[23] as u8;
+        
             self.p_consum_moni=u16::from_be_bytes([buf[24],buf[25]]);
+        
             self.r_reserved=u32::from_be_bytes([buf[26],buf[27],buf[28],buf[29]]);
+          
             self.t_reserved=u32::from_be_bytes([buf[30],buf[31],buf[32],buf[33]]);
             self.checksum=u8::from_be_bytes([buf[34]]);
             self.end=u8::from_be_bytes([buf[35]]);
@@ -336,6 +376,10 @@ impl RequestData {
             println!("check{:?}",data);
             println!("-----------------------");
             if self.checksum!=data[0]{
+                println!("--에러난 데이타--{:?}",list);
+                println!("에러난 체크섬 sumdata{}",sumdata);
+                println!("확인체크섬{}",data[0]);
+                println!("self체크섬{}",self.checksum);
                 return Err("Fail checksum Err".to_string());
             }
             let num = data[0].to_string();
@@ -347,6 +391,10 @@ impl RequestData {
             let checksum=u8::from_str_radix(hex_str,16).unwrap();
             println!("{}",checksum);
             if self.checksum!=checksum{
+                println!("--에러난 데이타--{:?}",list);
+                println!("에러난 체크섬 sumdata{}",sumdata);
+                // println!("확인체크섬{}",data[0].);
+                println!("self체크섬{}",self.checksum);
                 return Err("Fail checksum Err".to_string());
             }
             let num = checksum.to_string();
@@ -425,6 +473,7 @@ impl RequestData {
 
 pub fn list_add(list:&Vec<RequestDataList>)->u128{
     let mut sumdata:u128=0;
+    println!("--SUM DATA--{:?}",list);
         for i in list {
             match *i {
                 // RequestDataList::LENGHTH(data)|
@@ -433,8 +482,10 @@ pub fn list_add(list:&Vec<RequestDataList>)->u128{
                 RequestDataList::HV_ONOFF(data)|
                 RequestDataList::OPEN_SENSOR_MONI(data)
                 =>{
-                    sumdata+=u128::from(data);
-                    println!("COMMAND:{}",data);
+                    data.to_be_bytes().map(|x|sumdata+=u128::from(x));
+                    // sumdata+=u128::from(data);
+                    
+                    // println!("COMMAND:{}",data);
                 },
                 RequestDataList::DEVICE_SN(data)|
                 RequestDataList::RESERVED(data)|
@@ -445,21 +496,33 @@ pub fn list_add(list:&Vec<RequestDataList>)->u128{
                 RequestDataList::HV_MONI(data)|
                 RequestDataList::POWER_CONSUM_MONI(data)
                 =>{
-                    println!("DEVICE_SN:{}",data);
+                    // println!("DEVICE_SN:{}",data);
                     data.to_be_bytes().map(|x| sumdata+=u128::from(x));
+                    // sumdata+=u128::from(data);
                 },
       
                 RequestDataList::SET_PULSE_TIME(data)
                 =>{
-                    for i in data{
-                        println!("SET_PULSE_TIME:{}",i);
-                        i.to_be_bytes().map(|x| sumdata+=u128::from(x));
+                    for (num,i) in data.iter().enumerate(){
+                        // println!("SET_PULSE_TIME:{}",i);
+                        // i.to_be_bytes().map(|x| sumdata+=u128::from(x));
+                        if num==0{
+                            i.to_le_bytes().map(|x| sumdata+=u128::from(x));
+                            // sumdata+=u128::from_le_bytes(i);
+                        }
+                        if num==1{
+                            i.to_be_bytes().map(|x| sumdata+=u128::from(x));
+                            // sumdata+=u128::from_be_bytes(*i);
+                        }
+                        // i.to_be_bytes().map(|x| sumdata+=u128::from(x));
+                        // sumdata+=u128::from(i);
                     }
                 },
                 RequestDataList::L_RESERVED(data)|
                 RequestDataList::L2_RESERVED(data)
                 =>{
-                    println!("L_RESERVED:{}",data);
+                    // println!("L_RESERVED:{}",data);
+                    // sumdata+=u128::from(data);
                     data.to_be_bytes().map(|x| sumdata+=u128::from(x));
                     
                 },

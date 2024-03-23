@@ -49,7 +49,7 @@ pub fn setting_view(
                             }
                         });
                         
-                        let value = format!("Device : {}",report.lock().unwrap()[11]);
+                        let value = format!("Device : {}",report.lock().unwrap()[12]);
                         // ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                         job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,value.as_str(),true);
                     });
@@ -65,7 +65,7 @@ pub fn setting_view(
                                 click_voltage(uui,MenuList::PulseFreq,pos,k_timer_sender);
                             }
                         });
-                        let value = format!("Device : {}",report.lock().unwrap()[7]);
+                        let value = format!("Device : {}",report.lock().unwrap()[9]);
                         // ui.label(RichText::new(value.as_str()).strong().size(50.0).color(Color32::from_rgb(184, 184, 184)));
                         job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,value.as_str(),true);
                     });
@@ -167,13 +167,13 @@ pub fn setting_view(
                             header.col(|ui| {
                                 ui.add_space(10.0);
                                 // ui.label(RichText::new("High Voltage").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
-                                ui.label(RichText::new("High Voltage").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new("Pulse").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                                 
                             });
                             header.col(|ui| {
                                 ui.add_space(10.0);
                                 // ui.label(RichText::new("Pulse").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
-                                ui.label(RichText::new("Pulse").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new("High Voltage").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                         })
                         .body(|mut body| {
@@ -223,7 +223,7 @@ pub fn setting_view(
                             });
                             header.col(|ui| {
                                 ui.add_space(10.);
-                                ui.label(RichText::new(format!("{}",report.lock().unwrap()[11])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                ui.label(RichText::new(format!("{}",report.lock().unwrap()[12])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                             });
                         })
                         .body(|mut body| {
@@ -234,7 +234,7 @@ pub fn setting_view(
                                 });
                                 row.col(|ui| {
                                     ui.add_space(10.);
-                                    ui.label(RichText::new(format!("{}",report.lock().unwrap()[7])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                    ui.label(RichText::new(format!("{}",report.lock().unwrap()[9])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
                                 });
                             });
                             body.row(70.0, |mut row| {
