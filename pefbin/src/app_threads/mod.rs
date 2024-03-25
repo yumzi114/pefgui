@@ -18,7 +18,7 @@ use pefapi::app_error::ErrorList;
 
 
 #[cfg(unix)]
-const DEFAULT_TTY: &'static str = "/dev/ttyAMA3";
+const DEFAULT_TTY: &'static str = env!("DEFAULT_TTY");
 
 // const SOCKET_URL: &'static str = "wss://yumi.town/socket";
 // const SOCKET_URL: &'static str = "ws://192.168.0.10:8080/socket";

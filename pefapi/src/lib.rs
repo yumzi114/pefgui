@@ -15,7 +15,7 @@ pub mod app_error;
 use device::{PulseInfo,VolatageInfo};
 use std::fmt;
 #[cfg(unix)]
-const DEFAULT_TTY: &str = "/dev/ttyAMA3";
+const DEFAULT_TTY: &str = env!("DEFAULT_TTY");
 // const DEFAULT_TTY: &str = "/dev/ttyAMA0";
 
 pub enum ChageList{

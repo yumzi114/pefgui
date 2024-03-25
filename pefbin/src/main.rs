@@ -24,11 +24,8 @@ use thread_timer::ThreadTimer;
 // use log::{debug, error, info, trace, warn, LevelFilter, SetLoggerError};
 
 #[cfg(unix)]
-const DEFAULT_TTY: &str = "/dev/ttyAMA3";
-
-const SOCKET_URL: &'static str = "wss://yumi.town/socket";
-// const SOCKET_URL: &'static str = "ws://192.168.0.10:8080/socket";
-// const DEFAULT_TTY: &str = "/dev/ttyAMA0";
+const DEFAULT_TTY: &str  = env!("DEFAULT_TTY");
+const SOCKET_URL: &'static str=env!("SOCKET_URL");
 fn main() -> Result<(), eframe::Error> {
     //윈도우 사이즈
     let windows = ViewportBuilder{
@@ -77,10 +74,10 @@ fn main() -> Result<(), eframe::Error> {
             // let _handle: log4rs::Handle = log4rs::init_config(logconfig((*sys_time_mem.lock().unwrap()).clone())).unwrap();
             serial_receiver(respone_mem,report_mem,err_report_mem,err_type,rep_err_type);
             let state_mem= app.app_state.clone();
-            let respone_mem= app.response.clone();
+            let report= app.report.clone();
             // let socket_onoff=app.socket_onoff.clone();
             let socket = app.socket.clone();
-            socket_sender(socket,state_mem,respone_mem);
+            socket_sender(socket,state_mem,report);
             Box::<PEFApp>::new(app)
         }),
     )
