@@ -24,7 +24,7 @@ use thread_timer::ThreadTimer;
 // use log::{debug, error, info, trace, warn, LevelFilter, SetLoggerError};
 
 #[cfg(unix)]
-const DEFAULT_TTY: &str  = env!("DEFAULT_TTY");
+const DEFAULT_TTY: &'static str  = env!("DEFAULT_TTY");
 const SOCKET_URL: &'static str=env!("SOCKET_URL");
 fn main() -> Result<(), eframe::Error> {
     //윈도우 사이즈

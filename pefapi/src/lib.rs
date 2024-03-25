@@ -17,7 +17,7 @@ use std::fmt;
 #[cfg(unix)]
 const DEFAULT_TTY: &str = env!("DEFAULT_TTY");
 // const DEFAULT_TTY: &str = "/dev/ttyAMA0";
-
+const SERIAL_NUMBER: &str = env!("SERIAL_NUMBER");
 pub enum ChageList{
     HighVolValue,
     PulseFreq,
@@ -228,6 +228,12 @@ pub struct RequestData{
     end:u8,
 }
 impl RequestData {
+    pub fn default()->Self{
+        Self{
+            device_sn:u16::from_str_radix(SERIAL_NUMBER, 16).unwrap(),
+            ..Default::default()
+        }
+    }
     //변경된 값을 구조체에서 변경
     pub fn into_change_value(&mut self, change_value:ChageList){
         let c_value:u16 = match change_value {
