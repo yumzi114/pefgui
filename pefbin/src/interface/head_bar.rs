@@ -11,7 +11,6 @@ pub fn top_logo_view(ui: &mut Ui,ctx: &egui::Context, uui:&mut UserUi)->InnerRes
                         let (rect, _response) =ui.allocate_at_least(Vec2::new(450., 120.), Sense::click_and_drag());
                         egui::Image::new(egui::include_image!("../../files/device_image/red.png"))
                             .paint_at(ui, rect);
-                        // ui.label(RichText::new("PEF CIA").strong().size(80.0));
                     });
                 });
             });

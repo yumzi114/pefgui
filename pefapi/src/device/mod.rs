@@ -50,17 +50,6 @@ impl AppState {
         }
         
     }
-    // pub fn get_limit_time_fmt()->&str{
-
-    // }
-    // pub fn set_time_save(&mut self,value:Option<u16>){
-    //     self.set_time=value;
-    //     confy::store("pefapp", "appstate", self).unwrap();
-    // }
-    // pub fn limit_time_save(&mut self,value:Option<u16>){
-    //     self.limit_time=value;
-    //     confy::store("pefapp", "appstate", self).unwrap();
-    // }
 }
 #[derive(PartialEq, Serialize, Deserialize,Clone,Copy)]
 pub struct VolatageInfo{
@@ -104,32 +93,35 @@ impl PulseInfo {
         
         if file_PulseInfo!=*self{
             let value = 
-            // if self.power!=file_PulseInfo.power{Some(ChageList::Pulse_ON_OFF)}
-            if self.freq_value!=file_PulseInfo.freq_value {Some(ChageList::PulseFreq)}
+            if self.power!=file_PulseInfo.power{Some(ChageList::Pulse_ON_OFF)}
+            else if self.freq_value!=file_PulseInfo.freq_value {Some(ChageList::PulseFreq)}
             else if self.on_time_value!=file_PulseInfo.on_time_value{Some(ChageList::Pulse_ON_OFF_Time)}
             // else if self.off_time_value!=file_PulseInfo.off_time_value{Some(ChageList::Pulse_ON_OFF_Time)}
             else {None};
             match value {
                 Some(value)=>{
-                if let Ok(_)=self.pulse_on_off_set(){
-                    req_data.into_change_value(ChageList::Pulse_ON_OFF);
-                }
-                // confy::store("pefapp", "pulse", self.clone()).unwrap();
-                // (*socket_req.lock().unwrap()).into_change_value(value);
-                // req_data.into_change_value(value);
-                // let data = (*socket_req.lock().unwrap()).clone();
-                // *socket_req.lock().unwrap()=req_data.clone();
+                //온오프 자동설정시
+                // if let Ok(_)=self.pulse_on_off_set(){
+                //     req_data.into_change_value(ChageList::Pulse_ON_OFF);
+                // }
+             
                 let save_sender = sender.clone();
                 //pwd
+                
                 if let Ok(_)=self.change_pwm(){
                     req_data.into_change_value(value);
-                    let mut req=req_data.clone();
-                    // let num = self.pwm.unwrap() as u16;
-                    // req.set_pulse_time=[num,0];
+                    let req=req_data.clone();
                     confy::store("pefapp", "pulse", self.clone()).unwrap();
                     save_sender.send(req).unwrap();
                 }
-                // save_sender.send(req_data.clone()).unwrap();
+                //자동설정아닐시
+                else{
+                    req_data.into_change_value(value);
+                    self.pwm=Some(0.);
+                    let req=req_data.clone();
+                    confy::store("pefapp", "pulse", self.clone()).unwrap();
+                    save_sender.send(req).unwrap();
+                }
                 req_data.change_value=0b0000_0000_0000_0000;
             },
                 _=>{}
@@ -162,34 +154,7 @@ impl PulseInfo {
             self.power=temp;
             return Err(())
         }
-        // match self.power{
-        //     false=>{
-        //         if self.freq_value!=0&&self.on_time_value!=0{
-        //             if let Some(max_time)=self.max_time_value{
-        //                 if self.on_time_value<=max_time{
-        //                     self.power=true;
-        //                     return Ok(());
-        //                 }
-        //                 else{
-        //                     return Err(());
-        //                 }
-        //             }
-        //             else{
-        //                 return Err(());
-        //             }
-        //         }
-        //         else{
-        //             return Err(());
-        //         }
-        //     },
-        //     true=>{
-        //         if self.on_time_value==0||self.freq_value==0{
-        //             self.power=false;
-        //             return Ok(());
-        //         }
-        //         return Err(());
-        //     }
-        // }
+      
     }
     pub fn max_value_change(&mut self){
         let dd =50_0000_u32.checked_div(self.freq_value as u32 );
@@ -199,30 +164,7 @@ impl PulseInfo {
         else {
             self.max_time_value=None;
         }
-        
-        // match self.freq_value{
-        //     1..=20=>{
-        //         self.max_time_value=Some(25000);
-        //     },
-        //     21..=50=>{
-        //         self.max_time_value=Some(10000);
-        //     },
-        //     51..=100=>{
-        //         self.max_time_value=Some(5000);
-        //     },
-        //     101..=200=>{
-        //         self.max_time_value=Some(2500);
-        //     },
-        //     201..=500=>{
-        //         self.max_time_value=Some(1000);
-        //     },
-        //     501..=1000=>{
-        //         self.max_time_value=Some(500);
-        //     },
-        //     _=>{
-        //         self.max_time_value=None;
-        //     }
-        // }
+       
     }
     pub fn change_pwm(&mut self)->Result<(),()>{
 
@@ -252,9 +194,10 @@ impl VolatageInfo {
             else {None};
             match value {
                 Some(value)=>{
-                    if let Ok(_)=self.volat_on_off_set(){
-                        req_data.into_change_value(ChageList::HighVol_ON_OFF);    
-                    }
+                    //온오프 자동설정시
+                    // if let Ok(_)=self.volat_on_off_set(){
+                    //     req_data.into_change_value(ChageList::HighVol_ON_OFF);    
+                    // }
                     confy::store("pefapp", "vol", self).unwrap();
                     req_data.into_change_value(value);
                     let data = req_data.clone();

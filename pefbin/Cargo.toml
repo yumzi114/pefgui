@@ -32,6 +32,8 @@ byteorder = "1.5.0"
 thread_timer = "0.3.0"
 ihex = "3.0.0"
 bytebuffer = "2.2.0"
+mosquitto-rs = "0.11.1"
+egui_plot = "0.26.2"
 
 
 [dependencies.openssl]

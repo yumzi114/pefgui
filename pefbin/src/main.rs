@@ -10,7 +10,7 @@ mod app_threads;
 
 use pefapi::app_error::ErrorList;
 use component::{setup_custom_fonts, warring_window};
-use app_threads::{ui_timer,run_timer,serial_receiver,serial_sender,socket_sender,keypad_timer};
+use app_threads::{ui_timer,run_timer,serial_receiver,serial_sender,socket_sender,keypad_timer,mqtt_sender};
 use crossbeam_channel::{unbounded,Receiver,Sender};
 use interface::{UserUi,keypad::keypad_view};
 use pefapi::{device::{PulseInfo,VolatageInfo, AppState}, LineCodec, RequestData, RequestDataList};
@@ -25,6 +25,7 @@ use thread_timer::ThreadTimer;
 
 #[cfg(unix)]
 const DEFAULT_TTY: &'static str  = env!("DEFAULT_TTY");
+// const DEFAULT_TTY: &'static str="/dev/ttyAMA3";
 const SOCKET_URL: &'static str=env!("SOCKET_URL");
 fn main() -> Result<(), eframe::Error> {
     //윈도우 사이즈
@@ -78,6 +79,8 @@ fn main() -> Result<(), eframe::Error> {
             // let socket_onoff=app.socket_onoff.clone();
             let socket = app.socket.clone();
             socket_sender(socket,state_mem,report);
+            let report= app.report.clone();
+            mqtt_sender(report);
             Box::<PEFApp>::new(app)
         }),
     )
@@ -128,9 +131,6 @@ impl PEFApp {
         }else{
             Arc::new(Mutex::new(None))
         };
-        // let (mut socket, resp) =
-        // connect(Url::parse(SOCKET_URL).unwrap()).expect("Can't connect");
-        // let socket_mem = Arc::new(Mutex::new(socket));
         //시작시 기본설정으로 설정파일을 생성하고 읽어들여서 구조체생성 ~/.config/pefapp/{pulse.toml, vol.toml}
         confy::store("pefapp", "pulse", PulseInfo::default()).unwrap();
         confy::store("pefapp", "vol", VolatageInfo::default()).unwrap();
@@ -141,7 +141,6 @@ impl PEFApp {
         let app_state = Arc::new(Mutex::new(confy::load("pefapp", "appstate").unwrap_or_default()));
         let thread_time = Arc::new(Mutex::new(1));
         let request = RequestData::default();
-        // let socket_req = Arc::new(Mutex::new(request));
         let (tx, rx) = unbounded();
         let response=RequestData::default().to_list();
         let report = RequestData::default().to_list();
@@ -151,7 +150,6 @@ impl PEFApp {
         let err_report=Arc::new(Mutex::new(err_report));
         let err_type = Arc::new(Mutex::new(ErrorList::default()));
         let repo_err_type= Arc::new(Mutex::new(ErrorList::default()));
-        // let time = chrono::offset::Local::now().format("%Y-%m-%d");
         //작업시간
         let timer = ThreadTimer::new();
         let (timer_sender,timer_receiver)=unbounded();
@@ -190,18 +188,7 @@ impl PEFApp {
             
         }
     }
-    //임시 네트워크 갱신 함수
-    // fn update_net(&mut self){
-    //     if let None =(*self.socket.lock().unwrap()).as_mut(){
-    //         if let Ok((mut socket,res))=connect(Url::parse(SOCKET_URL).unwrap()){
-    //             let mut lock = self.socket.try_lock();
-    //             if let Ok(ref mut mutex)=lock{
-    //                 **mutex=Some(socket);
-    //             }
-    //         }else{
-    //         };
-    //     }
-    // }
+
 }
 
 impl eframe::App for PEFApp {
@@ -232,24 +219,10 @@ impl eframe::App for PEFApp {
                 self.k_timer_sender.send(num).unwrap();
             }
         }
-        //임시 네트워크 갱신
-        // self.update_net();
         //경고윈도우창
         warring_window(center_rect,ctx,&mut self.mainui);
-        // if let None =(*self.socket.lock().unwrap()).as_mut(){
-        //     if let Ok((mut socket,res))=connect(Url::parse(SOCKET_URL).unwrap()){
-        //         (*self.socket.lock().unwrap())=Some(socket);
-        //     }else{
-        //         // (*self.socket.lock().unwrap())=None;
-        //     };
-        // }
-        
+  
         egui::CentralPanel::default().show(ctx, |ui| {
-            // 인터페이스의 정의된 메서드실행 구문
-            // if let Some(asd)=(*self.socket.lock().unwrap()).as_mut(){
-            //     ui.label("연결됨");
-            // }
-            
             self.mainui.head_view(ui, ctx);
             self.mainui.content_view(ui, 
                 ctx,

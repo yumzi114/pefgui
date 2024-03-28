@@ -16,9 +16,6 @@ pub fn main_view(
     repo_error:&Arc<Mutex<ErrorList>>,
     app_state:&mut Arc<Mutex<AppState>>
 )->InnerResponse<()>{
-    // let mem = response.clone();
-    // let report=report.clone();
-    // let app_state_mem = app_state.clone();
     uui.keypad.popon=false;
     uui.keypad.sellist=None;
     //Report에 따라 뷰

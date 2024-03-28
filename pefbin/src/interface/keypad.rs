@@ -28,7 +28,6 @@ pub fn keypad_view(
     let title = match selmenu {
         Some(MenuList::SetVoltage)=>"High Voltage Set",
         Some(MenuList::PulseFreq)=>"Pulse Frequency Set",
-        // Some(MenuList::PulseOffTime)=>"Pulse OFF_Time Set",
         Some(MenuList::PulseOnTime)=>"Pulse ON_Time Set",
         Some(MenuList::RunningTime)=>"App Runtime Set",
         _=>""
@@ -97,12 +96,10 @@ pub fn keypad_view(
                 match selmenu {
                     Some(MenuList::RunningTime)=>{
                         if ui.add(egui::Button::new(RichText::new("").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
-                            // setvalue.push('.');
                         }
                     },
                     _=>{
                         if ui.add(egui::Button::new(RichText::new("").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
-                            // setvalue.push('.');
                             k_timer_sender.send(5).unwrap();
                         }
                     }
@@ -120,9 +117,7 @@ pub fn keypad_view(
                                     *warring_open=true;
                                     setvalue.clear();
                                 }else {
-                                    // let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
                                     pulse.freq_value=setvalue.parse::<u16>().unwrap_or(0);
-                                    // pulse.save(request,sender);
                                     pulse.max_value_change();
                                     if setvalue.parse::<u64>().unwrap_or(0)==0{
                                         pulse.save(request,sender);
@@ -141,37 +136,21 @@ pub fn keypad_view(
                                             pulse.save(request,sender);
                                         }
                                     };
-                                    // *status_str=format!("Set Done Value : {} ", pulse.freq_value.to_string());
                                     setvalue.clear();
                                 }
                                 k_timer_sender.send(5).unwrap();
                             },
                             Some(MenuList::PulseOffTime)=>{
-                                // if setvalue.parse::<f32>().unwrap_or(0.) >100.0{
-                                //     *status_str="Limit value (0 ~ 100 ms)".to_string();
-                                //     *warring_open=true;
-                                //     setvalue.clear();
-                                // }else {
-                                //     // let num = format!("{:.01}", setvalue.parse::<u16>().unwrap_or(0.));
-                                //     pulse.off_time_value=setvalue.parse::<u16>().unwrap_or(0);
-                                //     pulse.save(request,sender);
-                                //     *status_str=format!("Set Done Value : {} ", pulse.off_time_value.to_string());
-                                //     setvalue.clear();
-                                // }
-                                // k_timer_sender.send(5).unwrap();
+                      
                             },
                             Some(MenuList::PulseOnTime)=>{
                                 if let Some(value)=pulse.max_time_value{
                                     if setvalue.parse::<u64>().unwrap_or(0) >=u64::from(value)||
                                     setvalue.parse::<u64>().unwrap_or(0) <1{
-                                        
-                                        // *status_str="Limit value (0 ~  ms)".to_string();
                                         *status_str=format!("Frequency Value out of range (1 ~ {}us)",value-1);
-                                        // *status_str=format!("Limit value (1 ~ {}ms)",value-1);
                                         *warring_open=true;
                                         setvalue.clear();
                                     }else {
-                                        // let num = format!("{:.01}", setvalue.parse::<f32>().unwrap_or(0.));
                                         pulse.on_time_value=setvalue.parse::<u16>().unwrap_or(0);
                                         pulse.save(request,sender);
                                         
@@ -189,18 +168,11 @@ pub fn keypad_view(
                                     setvalue.clear();
                                 }else {
                                     let num = format!("{}", setvalue.parse::<u16>().unwrap_or(0));
-                                    // (*app_state_mem.lock().unwrap()).set_time=Some(15);
-                                    // let app_state_mem = app_state.clone();
-                                    
                                     let mut temp = (*app_state.lock().unwrap()).clone();
                                     temp.set_time=num.parse::<u16>().unwrap_or(0);
                                     temp.limit_time=num.parse::<u16>().unwrap_or(0);
-                                    // let ddd = app_state.lock().unwrap().clone();
                                     timer_sender.send(temp.set_time as usize).unwrap();
                                     *app_state.lock().unwrap()=temp;
-                                    // sender.send(temp).unwrap();
-                                    
-                                    // pulse.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", num.to_string());
                                     setvalue.clear();
                                 }

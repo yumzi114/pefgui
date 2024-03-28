@@ -8,6 +8,7 @@ use tokio::runtime::Runtime;
 use tokio_serial::{SerialPort, SerialPortBuilderExt, StopBits};
 use tokio_util::codec::Decoder;
 use url::Url;
+use mosquitto_rs::*;
 use std::sync::mpsc::channel;
 use futures_timer::Delay;
 use tungstenite::{connect, stream::MaybeTlsStream, Message, WebSocket};
@@ -19,9 +20,13 @@ use pefapi::app_error::ErrorList;
 
 #[cfg(unix)]
 const DEFAULT_TTY: &'static str = env!("DEFAULT_TTY");
+const MQTT_URL: &'static str = env!("MQTT_URL");
+const MQTT_PORT: &'static str = env!("MQTT_PORT");
+const SERIAL_NUMBER: &'static str = env!("SERIAL_NUMBER");
+const MQTT_USER: &'static str = env!("MQTT_USER");
+const MQTT_PSW: &'static str = env!("MQTT_PSW");
+const MQTT_TOPIT: &'static str = env!("MQTT_TOPIT");
 
-// const SOCKET_URL: &'static str = "wss://yumi.town/socket";
-// const SOCKET_URL: &'static str = "ws://192.168.0.10:8080/socket";
 
 //UI상태변경 스레드/소켓핑
 pub fn ui_timer(
@@ -33,14 +38,6 @@ pub fn ui_timer(
     thread::spawn(move||{
         loop{
             thread::sleep(Duration::from_secs(1));
-            
-            // if let Some(sender)=socket{
-            //     (*sender.lock().unwrap()).send(Message::Ping(vec![1_u8])).unwrap();
-            // }
-            // (*socket.lock().unwrap()).send(Message::Ping(vec![1_u8])).unwrap();
-            // if socket_onoff {
-            //     socket.lock().unwrap().as_mut().unwrap().send(Message::Ping(vec![1_u8])).unwrap();
-            // }
             if let Some(sender)=(*socket.lock().unwrap()).as_mut(){
                 (*sender).send(Message::Ping(vec![1_u8])).unwrap();
             }
@@ -53,30 +50,7 @@ pub fn ui_timer(
         }
     });
 }
-//작업시간 타이머스레드
-// pub fn run_timer(
-//     app_state_mem: Arc<Mutex<AppState>>,
-//     timer:ThreadTimer,
-// ){
-    
-    
-//     thread::spawn(move||{
-//         timer.start(Duration::from_secs(30), move || { }).unwrap();
-//         let rt  = Runtime::new().unwrap();
-//         rt.block_on(async {
-//             loop{
-//                 thread::sleep(Duration::from_millis(1));
-//                 if (*app_state_mem.lock().unwrap()).limit_time!=0{
-//                     let mut app_state = (*app_state_mem.lock().unwrap()).clone();
-//                     sleep(Duration::new(60, 0));
-//                     app_state.limit_time-=1;
-//                     confy::store("pefapp", "appstate", app_state).unwrap();
-//                     *app_state_mem.lock().unwrap()=app_state;
-//                 }
-//             }
-//         });
-//     });
-// }
+
 pub fn run_timer(
     timer:ThreadTimer,
     timer_receiver:Receiver<usize>,
@@ -229,36 +203,6 @@ pub fn serial_receiver(
                                 }
                                 // _=>{}
                             }
-                            // if req_data[4]==RequestDataList::COMMAND(0x03){
-                            //     *report_mem.lock().unwrap()=req_data;
-                            //     println!("-------REPORT DATA-----");
-                            // }
-                            // else if req_data[4]==RequestDataList::COMMAND(0x02){
-                            //     *respone_mem.lock().unwrap()=req_data;
-                            //     println!("-------RESPONE DATA-----");
-                            //     if let Err(e)=responese_data.check_all(){
-                            //         match &e[..] {
-                            //             "Over Limit"=>{
-                            //                 *err_type.lock().unwrap()=ErrorList::OverLimit;
-                            //             },
-                            //             "Non Response"=>{
-                            //                 *err_type.lock().unwrap()=ErrorList::NonResponse;
-                            //             },
-                            //             "CRC Error"=>{
-                            //                 *err_type.lock().unwrap()=ErrorList::CRCError;
-                            //             },
-                            //             "Fail checksum Err"=>{
-                            //                 *err_type.lock().unwrap()=ErrorList::CheckSumErr;
-                            //             },
-                            //             _=>{}
-                            //         }
-                            //     }
-                            //     else {
-                            //         *err_type.lock().unwrap()=ErrorList::None;
-                            //     }
-                            // }
-                            
-                            
                         }
                     }
                 }
@@ -273,57 +217,26 @@ pub fn socket_sender(
     app_state:Arc<Mutex<AppState>>,
     response:Arc<Mutex<Vec<RequestDataList>>>){
     let mem = response.clone();
-    // let (mut socket, resp) =
-    //     connect(Url::parse(SOCKET_URL).unwrap()).expect("Can't connect");
-    // let mem = socket.clone();
-    // let mut dd;
-    // if let Some(soc_mem)=socket{
-    //     dd = soc_mem.clone();
-    // }
+ 
     thread::spawn(move||{
         let rt  = Runtime::new().unwrap();
             rt.block_on(async {
                 loop{
                     sleep(Duration::from_millis(1));
-                    
-                    // socket.send(Message::Ping(vec![1_u8])).unwrap();
                     if (*app_state.lock().unwrap()).limit_time!=0{
                         let mut name = String::new();
                         let list =(*response.lock().unwrap()).clone();
                         for i in list {
                             name.push_str(format!("{}",i).as_str());
                         }
-                    // if socket_onoff{
-                    //     socket.lock().unwrap().as_mut().unwrap().send(Message::Text(name)).unwrap();
-                    // }
+      
                     if let Some(sender)=(*socket.lock().unwrap()).as_mut(){
                         (*sender).send(Message::Text(name)).unwrap();
                     }
-                    
-                    
-                    //     sleep(Duration::from_secs(5));
-                        // let test = String::from("value");
-                        // let tesdd =test.as_bytes();
-                        // socket.send(Message::binary(tesdd)).unwrap();
-                        // let strt = (*mem.lock().unwrap()).socket_fmt();
-                        // let dd = *socket_req.lock().unwrap();
-                        // let ddd=dd.to_list()[6];
-                        // if let Some(sender)=socket{
-                        //     // let ad = sender.clone();
-                        //     // sender.lock().unwrap().send
-                        //     // (*sender.lock().unwrap()).send(Message::Text(name)).unwrap();
-                        // }
-                        // (*socket.lock().unwrap()).send(Message::Text(name)).unwrap();
-                        // socket.send(Message::Text(name)).unwrap();
-                        // let str = (*response.lock().unwrap())
                         sleep(Duration::new(5, 0));
                         continue;
                     }
-                    //헤어확인시
-                    // for (ref header, _value) in response.headers() {
-                    //     let str = format!("{}",header);
-                    //     socket.send(Message::Text(str)).unwrap();
-                    // }
+        
                 }
                 
             });
@@ -331,3 +244,51 @@ pub fn socket_sender(
 }
 
 
+pub fn mqtt_sender(
+    response:Arc<Mutex<Vec<RequestDataList>>>,
+){
+    // let mem =response.clone();
+    thread::spawn(move||{
+        let rt  = Runtime::new().unwrap();
+        rt.block_on(async {
+            loop{
+                thread::sleep(Duration::from_secs(1));
+                // let client: Client = Client::with_auto_id().unwrap();
+                let client: Client = Client::with_id(SERIAL_NUMBER, false).unwrap();
+                client.set_username_and_password(Some(MQTT_USER), Some(MQTT_PSW)).unwrap();
+                let rc = client.connect(
+                    MQTT_URL, i32::from_str_radix(MQTT_PORT, 10).unwrap(),
+                                std::time::Duration::from_secs(5), None).await;
+                while let Ok(_)=rc{
+                    thread::sleep(Duration::from_secs(1));
+                    let mut payload =String::new();
+                    let list = (*response.lock().unwrap()).clone();
+                    let asd =[1.2];
+                    
+                    
+                    for (num,i) in list.iter().enumerate(){
+                        if let Ok(data)=i.to_paylod(){
+                            if !payload.is_empty(){
+                                payload.push_str(",");                                    
+                            }
+                            payload.push_str(&data[..]);
+                        }
+                    }
+                    // ddd.map(|x|if let Ok(data)=x.to_paylod(){
+                    //     payload.push_str(&data[..]);
+                    // });
+                    let result = client.publish(MQTT_TOPIT, payload.as_bytes(), QoS::AtMostOnce, false).await;
+                    if let Ok(_)=result{
+                        continue;
+                    }else{
+                        break;
+                    }
+                }
+                // while rc{
+                //     thread::sleep(Duration::from_secs(3));    
+                //     client.publish("test", b"PEFBOARD", QoS::AtMostOnce, false).await.unwrap();
+                // } 
+            }
+        });
+    });
+}

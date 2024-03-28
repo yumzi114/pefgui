@@ -54,27 +54,12 @@ pub fn warring_window(center_rect:Pos2,ctx:&egui::Context, user_ui:&mut UserUi){
                         "Frequ"=>{
                             warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
                         },
-                        // "Limit value (0 ~ 1000 Hz)"=>{
-                        //     warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
-                        // },
-                        // "Limit value (0 ~ 100 ms)"=>{
-                        //     warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
-                        // },
-                        // "Limit value (0 ~ 5000M)"=>{
-                        //     warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
-                        //     // warning_file=egui::include_image!("../../files/warningtest.png");
-                        // }
-                        // "Limit value (0 ~ 20 Kv)"=>{
-                        //     // warning_file=egui::include_image!("../../files/error/temp/vol_error.png");
-                        //     warning_file=egui::include_image!("../../files/error/yellow/value_error.png");
-                        // }
                         _=>{
                             user_ui.warning_pop=false;
                         }
                     }
                     egui::Image::new(warning_file)
                         .paint_at(ui, temp_rect);
-                    // ui.label(RichText::new("text").strong().size(150.0).color(Color32::DARK_RED));
                     if _response.clicked(){
                         user_ui.warning_pop=false;
                     }
@@ -82,7 +67,5 @@ pub fn warring_window(center_rect:Pos2,ctx:&egui::Context, user_ui:&mut UserUi){
                 
                 
             });
-            // egui::panel::CentralPanel::default().show(ctx, |ui|{
-            // });
         });
 }

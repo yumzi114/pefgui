@@ -16,7 +16,6 @@ use device::{PulseInfo,VolatageInfo};
 use std::fmt;
 #[cfg(unix)]
 const DEFAULT_TTY: &str = env!("DEFAULT_TTY");
-// const DEFAULT_TTY: &str = "/dev/ttyAMA0";
 const SERIAL_NUMBER: &str = env!("SERIAL_NUMBER");
 pub enum ChageList{
     HighVolValue,
@@ -164,6 +163,31 @@ impl fmt::Display for RequestDataList {
        }
     }
 }
+
+impl RequestDataList {
+    pub fn to_paylod(&self)->Result<String,()>{
+        match self {
+            RequestDataList::DEVICE_SN(data)|
+            RequestDataList::PULSE_MONI(data)|
+            RequestDataList::HV_MONI(data)|
+            RequestDataList::POWER_CONSUM_MONI(data)
+            =>{
+                // Ok(format!("{:?}{:#x}",self,*data))
+                Ok(format!("{:?}",self))
+            }
+            RequestDataList::OPEN_SENSOR_MONI(data)|
+            RequestDataList::HV_ONOFF(data)|
+            RequestDataList::PULSE_ONOFF(data)
+            =>{
+                // Ok(format!("{:?}{:#x}",self,*data))
+                Ok(format!("{:?}",self))
+            }
+            _=>{
+                Err(())
+            }
+        }
+    }
+}
 #[derive(Debug,PartialEq,Eq,Serialize,Deserialize,Defaults,Clone,Copy)]
 pub struct RequestData{
     //175 0xAF고정
@@ -252,13 +276,15 @@ impl RequestData {
         self.checksum();
     }
     pub fn getter(&mut self){
-        let pulse_info:PulseInfo = confy::load("pefapp", "pulse").unwrap();
-        let vol_info:VolatageInfo = confy::load("pefapp", "vol").unwrap();
+        let pulse_info:PulseInfo = confy::load("pefapp", "pulse").unwrap_or_default();
+        let vol_info:VolatageInfo = confy::load("pefapp", "vol").unwrap_or_default();
         //pulse set
         self.pulse_onoff=if pulse_info.power {1}else{0};
         self.set_pulse_freq=pulse_info.freq_value as u16;
+        
+        // self.set_vol=pulse_info.pwm.unwrap() as u16;
         // self.set_pulse_time[0]=pulse_info.on_time_value as u16;
-        self.set_pulse_time[0]=pulse_info.pwm.unwrap() as u16;
+        self.set_pulse_time[0]=pulse_info.pwm.unwrap_or(0.) as u16;
         self.set_pulse_time[1]=pulse_info.off_time_value as u16;
         //voltage set
         self.hv_onoff=if vol_info.power{1}else{0};
@@ -423,11 +449,7 @@ impl RequestData {
             }
         }
     }
-    // pub fn check_all(&self)->Result<String,String>{
-    //     self.is_err_response()?;
-    //     self.is_checksum()?;
-    //     Ok("success".to_string())
-    // }
+
     pub fn check_all(&mut self, err_type: Arc<Mutex<ErrorList>>,repo_err_type: Arc<Mutex<ErrorList>>)->Result<(u8),(u8)>{
         if let Err(s)=self.is_err_response(){
             match &s[..] {
