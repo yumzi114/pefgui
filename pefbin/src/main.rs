@@ -237,7 +237,6 @@ impl eframe::App for PEFApp {
                 &mut self.app_state,
                 &mut self.timer_sender,
                 &mut self.k_timer_sender,
-                
             );
             self.mainui.bottom_view(ui, ctx,&self.thread_time,&self.err_type,&mut self.app_state);
         });

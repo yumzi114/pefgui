@@ -1,5 +1,5 @@
 use core::time;
-use std::{net::TcpStream, sync::{Arc, Mutex}, thread::{self, sleep}, time::{Duration, Instant, SystemTime}};
+use std::{io::ErrorKind, net::TcpStream, sync::{Arc, Mutex}, thread::{self, sleep}, time::{Duration, Instant, SystemTime}};
 use futures::{SinkExt, StreamExt};
 use log4rs::append::rolling_file::policy::compound::trigger::Trigger;
 use pefapi::{device::AppState, LineCodec, RequestData, RequestDataList};
@@ -173,6 +173,57 @@ pub fn serial_receiver(
                 //데이터 수신확인
                 if let Some(line_result)=reader.next().await {
                     //통신버퍼를 확인
+                    // match line_result{
+                    //     Ok(req_data)=>{
+                    //         let mut responese_data = RequestData::default();
+                    //         //데이터 파싱확인
+                    //         if let Ok(req_data)=responese_data.parser(&datalist){
+                    //             match responese_data.check_all(err_type.clone(),repo_err_type.clone()) {
+                    //                 Ok(command)=>{
+                    //                     if command==0x03{
+                    //                         let dd =  RequestData::default();
+                    //                         let clear = dd.to_list();
+                    //                         *err_report_mem.lock().unwrap()=clear;
+                    //                         *report_mem.lock().unwrap()=req_data;
+                    //                     }
+                    //                     else if command==0x02{
+                    //                         *respone_mem.lock().unwrap()=req_data;
+                    //                     }
+                    //                 },
+                    //                 Err(command)=>{
+                    //                     if command==0x03{
+                    //                         let dd =  RequestData::default();
+                    //                         let clear = dd.to_list();
+                    //                         *report_mem.lock().unwrap()=clear;
+                    //                         *err_report_mem.lock().unwrap()=req_data;
+                    //                     }
+                    //                     else if command==0x02{
+                    //                         *respone_mem.lock().unwrap()=req_data;
+                    //                     }
+                    //                 }
+                    //                 // _=>{}
+                    //             }
+                    //         }
+                    //     }
+                    //     // Err(Error::other("Device S/N Error"))=>{
+                            
+                    //     // }
+                    //     Err(error)=>{
+                    //         match error.kind() {
+                    //             ErrorKind::Other=>{
+
+                    //             }
+                    //             // Error::other("Device S/N Error")=>{},
+                    //             ErrorKind::NotFound=>{
+
+                    //             }
+                    //             _=>{
+
+                    //             }
+                    //         }
+
+                    //     }
+                    // }
                     if let Ok(datalist)=line_result{
                         let mut responese_data = RequestData::default();
                         //데이터 파싱확인

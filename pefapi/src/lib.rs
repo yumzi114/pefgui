@@ -1,7 +1,7 @@
 use app_error::ErrorList;
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt, WriteBytesExt};
 use bytebuffer::ByteBuffer;
-use std::{borrow::BorrowMut, io::Cursor, ops::Index, sync::{Arc, Mutex}};
+use std::{borrow::BorrowMut, io::{Cursor, ErrorKind,Error}, ops::Index, sync::{Arc, Mutex}};
 use futures::{ StreamExt, SinkExt};
 use tokio_util::codec::{Decoder, Encoder};
 use tokio_serial::{SerialPortBuilderExt, SerialPort, StopBits};
@@ -31,7 +31,7 @@ pub struct LineCodec ;
 impl Decoder for LineCodec {
     type Item = Vec<u8>;
     type Error = io::Error;
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, std::io::Error> {
         let start = src.as_ref().iter().position(|x| *x == 0xFC);
         if let Some(n) = start {
             let line = src.split_to(n+1);
@@ -41,6 +41,12 @@ impl Decoder for LineCodec {
                 println!("-수신된 BUFFER-{:?}",line_list);
                 println!("-LEN-{:?}",line_list.len());
                 return Ok(Some(line_list));
+            }
+            else if line_list.len()==36&&line_list[0]==0xAF&&line_list[1]==33&&line_list[3]==00{
+                return Err(Error::other("Device S/N Error"));
+            }
+            else {
+                return Err(Error::new(ErrorKind::NotConnected, "Device Not Connected"));
             }
       
         }
@@ -167,25 +173,67 @@ impl fmt::Display for RequestDataList {
 impl RequestDataList {
     pub fn to_paylod(&self)->Result<String,()>{
         match self {
+            RequestDataList::START(data)|
+            RequestDataList::LENGHTH(data)|
+            RequestDataList::COMMAND(data)|
+            RequestDataList::PULSE_ONOFF(data)|
+            RequestDataList::HV_ONOFF(data)|
+            RequestDataList::OPEN_SENSOR_MONI(data)|
+            RequestDataList::CHECKSUM(data)|
+            RequestDataList::END(data)
+            =>{
+                Ok(format!("{:?}",data))
+            },
             RequestDataList::DEVICE_SN(data)|
+            RequestDataList::RESERVED(data)|
+            RequestDataList::CHANGE_VALUE(data)|
+            RequestDataList::SET_PULSE_FREQ(data)|
             RequestDataList::PULSE_MONI(data)|
+            RequestDataList::SET_VOL(data)|
             RequestDataList::HV_MONI(data)|
             RequestDataList::POWER_CONSUM_MONI(data)
             =>{
-                // Ok(format!("{:?}{:#x}",self,*data))
-                Ok(format!("{:?}",self))
-            }
-            RequestDataList::OPEN_SENSOR_MONI(data)|
-            RequestDataList::HV_ONOFF(data)|
-            RequestDataList::PULSE_ONOFF(data)
+                Ok(format!("{:?}",data))
+                // buf.put_u16(data);
+            },
+            RequestDataList::L_RESERVED(data)|
+            RequestDataList::L2_RESERVED(data)
             =>{
-                // Ok(format!("{:?}{:#x}",self,*data))
-                Ok(format!("{:?}",self))
+                Ok(format!("{:?}",data))
+            },
+            RequestDataList::SET_PULSE_TIME(data)
+            =>{
+                Ok(format!("[{:?},{:?}]",data[0],data[1]))
+                // data.map(|x|buf.put_u16(x));
             }
             _=>{
                 Err(())
             }
+            // _=>{
+            //     // continue;
+            // }
         }
+        // match self {
+            
+        //     RequestDataList::DEVICE_SN(data)|
+        //     RequestDataList::PULSE_MONI(data)|
+        //     RequestDataList::HV_MONI(data)|
+        //     RequestDataList::POWER_CONSUM_MONI(data)
+        //     =>{
+        //         // Ok(format!("{:?}{:#x}",self,*data))
+        //         Ok(format!("{:?}",self))
+        //     }
+        //     RequestDataList::OPEN_SENSOR_MONI(data)|
+        //     RequestDataList::HV_ONOFF(data)|
+        //     RequestDataList::PULSE_ONOFF(data)
+        //     =>{
+        //         // Ok(format!("{:?}{:#x}",self,*data))
+        //         Ok(format!("{:?}",self))
+        //     }
+        //     _=>{
+        //         Err(())
+        //     }
+        // }
     }
 }
 #[derive(Debug,PartialEq,Eq,Serialize,Deserialize,Defaults,Clone,Copy)]

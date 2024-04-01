@@ -251,7 +251,7 @@ fn device_on_view(
         
     })
 }
-
+//CHECKSUM 오류시뷰
 pub fn device_off_view(
     ui: &mut Ui,
     ctx: &egui::Context,

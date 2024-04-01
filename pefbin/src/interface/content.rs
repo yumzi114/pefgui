@@ -188,7 +188,11 @@ pub fn setting_view(
                             });
                         })
                     });
+                    
+                    
                     ui.add_space(15.);
+                    // let (rect, _response) =ui.allocate_at_least(Vec2::new(450., 80.), Sense::click_and_drag());
+                    // ui.painter_at(rect).
                     ui.push_id(2, |ui| {
                         TableBuilder::new(ui)
                         .cell_layout(egui::Layout::top_down(egui::Align::Center))

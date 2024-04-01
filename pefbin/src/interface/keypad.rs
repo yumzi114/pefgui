@@ -112,8 +112,8 @@ pub fn keypad_view(
                         match selmenu {
                             Some(MenuList::PulseFreq)=>{
                                 if setvalue.parse::<u64>().unwrap_or(0) >1000||
-                                setvalue.parse::<u64>().unwrap_or(0) <250&&setvalue.parse::<u64>().unwrap_or(0)>=1{
-                                    *status_str="Limit value (250 ~ 1000 Hz)".to_string();
+                                setvalue.parse::<u64>().unwrap_or(0)==0{
+                                    *status_str="Limit value (1 ~ 1000 Hz)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
                                 }else {
