@@ -7,6 +7,9 @@ pub enum ErrorList{
     OverLimit,
     NonResponse,
     CRCError,
+    DeviceSNErr,
+    StandByMode,
+    BoardErr,
     #[default]
     None
 }

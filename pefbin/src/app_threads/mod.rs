@@ -173,89 +173,104 @@ pub fn serial_receiver(
                 //데이터 수신확인
                 if let Some(line_result)=reader.next().await {
                     //통신버퍼를 확인
-                    // match line_result{
-                    //     Ok(req_data)=>{
-                    //         let mut responese_data = RequestData::default();
-                    //         //데이터 파싱확인
-                    //         if let Ok(req_data)=responese_data.parser(&datalist){
-                    //             match responese_data.check_all(err_type.clone(),repo_err_type.clone()) {
-                    //                 Ok(command)=>{
-                    //                     if command==0x03{
-                    //                         let dd =  RequestData::default();
-                    //                         let clear = dd.to_list();
-                    //                         *err_report_mem.lock().unwrap()=clear;
-                    //                         *report_mem.lock().unwrap()=req_data;
-                    //                     }
-                    //                     else if command==0x02{
-                    //                         *respone_mem.lock().unwrap()=req_data;
-                    //                     }
-                    //                 },
-                    //                 Err(command)=>{
-                    //                     if command==0x03{
-                    //                         let dd =  RequestData::default();
-                    //                         let clear = dd.to_list();
-                    //                         *report_mem.lock().unwrap()=clear;
-                    //                         *err_report_mem.lock().unwrap()=req_data;
-                    //                     }
-                    //                     else if command==0x02{
-                    //                         *respone_mem.lock().unwrap()=req_data;
-                    //                     }
-                    //                 }
-                    //                 // _=>{}
-                    //             }
-                    //         }
-                    //     }
-                    //     // Err(Error::other("Device S/N Error"))=>{
-                            
-                    //     // }
-                    //     Err(error)=>{
-                    //         match error.kind() {
-                    //             ErrorKind::Other=>{
-
-                    //             }
-                    //             // Error::other("Device S/N Error")=>{},
-                    //             ErrorKind::NotFound=>{
-
-                    //             }
-                    //             _=>{
-
-                    //             }
-                    //         }
-
-                    //     }
-                    // }
-                    if let Ok(datalist)=line_result{
-                        let mut responese_data = RequestData::default();
-                        //데이터 파싱확인
-                        if let Ok(req_data)=responese_data.parser(&datalist){
-                            
-                            match responese_data.check_all(err_type.clone(),repo_err_type.clone()) {
-                                Ok(command)=>{
-                                    if command==0x03{
-                                        let dd =  RequestData::default();
-                                        let clear = dd.to_list();
-                                        *err_report_mem.lock().unwrap()=clear;
-                                        *report_mem.lock().unwrap()=req_data;
+                    match line_result{
+                        Ok(datalist)=>{
+                            let mut responese_data = RequestData::default();
+                            //데이터 파싱확인
+                            if let Ok(req_data)=responese_data.parser(&datalist){
+                                match responese_data.check_all(err_type.clone(),repo_err_type.clone()) {
+                                    Ok(command)=>{
+                                        if command==0x03{
+                                            let dd =  RequestData::default();
+                                            let clear = dd.to_list();
+                                            *err_report_mem.lock().unwrap()=clear;
+                                            *report_mem.lock().unwrap()=req_data;
+                                        }
+                                        else if command==0x02{
+                                            *respone_mem.lock().unwrap()=req_data;
+                                        }
+                                    },
+                                    Err(command)=>{
+                                        if command==0x03{
+                                            let dd =  RequestData::default();
+                                            let clear = dd.to_list();
+                                            *report_mem.lock().unwrap()=clear;
+                                            *err_report_mem.lock().unwrap()=req_data;
+                                        }
+                                        else if command==0x02{
+                                            *respone_mem.lock().unwrap()=req_data;
+                                        }
                                     }
-                                    else if command==0x02{
-                                        *respone_mem.lock().unwrap()=req_data;
-                                    }
-                                },
-                                Err(command)=>{
-                                    if command==0x03{
-                                        let dd =  RequestData::default();
-                                        let clear = dd.to_list();
-                                        *report_mem.lock().unwrap()=clear;
-                                        *err_report_mem.lock().unwrap()=req_data;
-                                    }
-                                    else if command==0x02{
-                                        *respone_mem.lock().unwrap()=req_data;
-                                    }
+                                    // _=>{}
                                 }
-                                // _=>{}
                             }
                         }
+                        // Err(Error::other("Device S/N Error"))=>{
+                            
+                        // }
+                        Err(error)=>{
+                            match error.kind() {
+                                ErrorKind::Other=>{
+                                    *err_type.lock().unwrap()=ErrorList::DeviceSNErr;
+                                    let dd =  RequestData::default();
+                                    let clear = dd.to_list();
+                                    *report_mem.lock().unwrap()=clear;
+                                    // *err_report_mem.lock().unwrap()=req_data;
+                                    continue;
+                                }
+                                // Error::other("Device S/N Error")=>{},
+                                ErrorKind::NotFound=>{  
+                                    *err_type.lock().unwrap()=ErrorList::StandByMode;
+                                    let dd =  RequestData::default();
+                                    let clear = dd.to_list();
+                                    *report_mem.lock().unwrap()=clear;
+                                    // *err_report_mem.lock().unwrap()=req_data;
+                                    continue;
+                                }
+                                _=>{
+                                    *err_type.lock().unwrap()=ErrorList::BoardErr;
+                                    let dd =  RequestData::default();
+                                    let clear = dd.to_list();
+                                    *report_mem.lock().unwrap()=clear;
+                                    // *err_report_mem.lock().unwrap()=req_data;
+                                    continue;
+                                }
+                            }
+
+                        }
                     }
+                    // if let Ok(datalist)=line_result{
+                    //     let mut responese_data = RequestData::default();
+                    //     //데이터 파싱확인
+                    //     if let Ok(req_data)=responese_data.parser(&datalist){
+                            
+                    //         match responese_data.check_all(err_type.clone(),repo_err_type.clone()) {
+                    //             Ok(command)=>{
+                    //                 if command==0x03{
+                    //                     let dd =  RequestData::default();
+                    //                     let clear = dd.to_list();
+                    //                     *err_report_mem.lock().unwrap()=clear;
+                    //                     *report_mem.lock().unwrap()=req_data;
+                    //                 }
+                    //                 else if command==0x02{
+                    //                     *respone_mem.lock().unwrap()=req_data;
+                    //                 }
+                    //             },
+                    //             Err(command)=>{
+                    //                 if command==0x03{
+                    //                     let dd =  RequestData::default();
+                    //                     let clear = dd.to_list();
+                    //                     *report_mem.lock().unwrap()=clear;
+                    //                     *err_report_mem.lock().unwrap()=req_data;
+                    //                 }
+                    //                 else if command==0x02{
+                    //                     *respone_mem.lock().unwrap()=req_data;
+                    //                 }
+                    //             }
+                    //             // _=>{}
+                    //         }
+                    //     }
+                    // }
                 }
             }
         });

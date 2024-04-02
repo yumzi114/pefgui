@@ -38,12 +38,12 @@ impl Decoder for LineCodec {
             let line_list = line.to_vec();
             println!("-수신전 BUFFER-{:?}",line_list);
             if line_list.len()==36&&line_list[0]==0xAF&&line_list[1]==33{
+                if line_list[3]==00{
+                    return Err(Error::other("Device S/N Error"));
+                }
                 println!("-수신된 BUFFER-{:?}",line_list);
                 println!("-LEN-{:?}",line_list.len());
                 return Ok(Some(line_list));
-            }
-            else if line_list.len()==36&&line_list[0]==0xAF&&line_list[1]==33&&line_list[3]==00{
-                return Err(Error::other("Device S/N Error"));
             }
             else {
                 return Err(Error::new(ErrorKind::NotConnected, "Device Not Connected"));
@@ -182,7 +182,7 @@ impl RequestDataList {
             RequestDataList::CHECKSUM(data)|
             RequestDataList::END(data)
             =>{
-                Ok(format!("{:?}",data))
+                Ok(format!("{:#x}",data))
             },
             RequestDataList::DEVICE_SN(data)|
             RequestDataList::RESERVED(data)|
@@ -193,17 +193,17 @@ impl RequestDataList {
             RequestDataList::HV_MONI(data)|
             RequestDataList::POWER_CONSUM_MONI(data)
             =>{
-                Ok(format!("{:?}",data))
+                Ok(format!("{:#x}",data))
                 // buf.put_u16(data);
             },
             RequestDataList::L_RESERVED(data)|
             RequestDataList::L2_RESERVED(data)
             =>{
-                Ok(format!("{:?}",data))
+                Ok(format!("{:#x}",data))
             },
             RequestDataList::SET_PULSE_TIME(data)
             =>{
-                Ok(format!("[{:?},{:?}]",data[0],data[1]))
+                Ok(format!("[{:#x},{:#x}]",data[0],data[1]))
                 // data.map(|x|buf.put_u16(x));
             }
             _=>{

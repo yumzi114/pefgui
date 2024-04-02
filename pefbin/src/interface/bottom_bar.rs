@@ -14,6 +14,14 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                     let mut status_string = String::new();
                     ui.add(egui::Label::new(RichText::new("      STATE : ").color(Color32::from_rgb(36, 101, 255)).strong().size(80.0)));
                     match *err_type.lock().unwrap() {
+                        ErrorList::None=>{
+                            if (*app_state.lock().unwrap()).limit_time!=0{
+                                status_string=format!("Machine Running{}",time.as_str());    
+                            }
+                            else{
+                                status_string=format!("Stand By{}",time.as_str());
+                            }
+                        },
                         ErrorList::CheckSumErr=>{
                             status_string="ResponseCheckSum Error".to_string();
                         },
@@ -26,16 +34,11 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                         ErrorList::NonResponse=>{
                             status_string="NonResponse".to_string();
                         },
-                        ErrorList::None=>{
-                            if (*app_state.lock().unwrap()).limit_time!=0{
-                                status_string=format!("Machine Running{}",time.as_str());    
-                            }
-                            else{
-                                status_string=format!("Waiting{}",time.as_str());
-                            }
+                        ErrorList::DeviceSNErr=>{
+                            status_string="Board Check".to_string();
                         },
                         _=>{
-
+                            status_string="Board Check".to_string();
                         }
                     }
                     if uui.keypad.popon {
