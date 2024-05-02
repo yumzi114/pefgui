@@ -94,6 +94,11 @@ pub fn keypad_view(
                     k_timer_sender.send(5).unwrap();
                 }
                 match selmenu {
+                    Some(MenuList::SetVoltage)=>{
+                        if ui.add(egui::Button::new(RichText::new(".").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
+                            setvalue.push('.');
+                        }
+                    },
                     Some(MenuList::RunningTime)=>{
                         if ui.add(egui::Button::new(RichText::new("").color(egui::Color32::BLACK).strong().size(80.0)).min_size(Vec2::new(50., 120.)).fill(egui::Color32::from_rgb(234, 237, 173))).clicked() {
                         }
@@ -179,14 +184,14 @@ pub fn keypad_view(
                                 k_timer_sender.send(5).unwrap();
                             },
                             Some(MenuList::SetVoltage)=>{
-                                if setvalue.parse::<u64>().unwrap_or(0) >20
-                                ||setvalue.parse::<u64>().unwrap_or(0) <4&&setvalue.parse::<u64>().unwrap_or(0)>=1{
+                                if setvalue.parse::<f32>().unwrap_or(0.) >20.0
+                                ||setvalue.parse::<f32>().unwrap_or(0.) <4.&&setvalue.parse::<f32>().unwrap_or(0.)>=1.{
                                     *status_str="Limit value (4 ~ 20 Kv)".to_string();
                                     *warring_open=true;
                                     setvalue.clear();
                                 }else {
                                     // let num = format!("{:.01}", setvalue.parse::<u16>().unwrap_or(0.));
-                                    volat.value=setvalue.parse::<u16>().unwrap_or(0);
+                                    volat.value=setvalue.parse::<f32>().unwrap_or(0.0);
                                     volat.save(request,sender);
                                     *status_str=format!("Set Done Value : {} ", volat.value.to_string());
                                     setvalue.clear();

@@ -51,6 +51,8 @@ pub struct UserUi{
     pub view_menu:ViewList,
     pub table_sel:Vec<bool>,
     pub warning_pop:bool,
+    pub timer:bool,
+    pub color:[u8;3],
     
 }
 impl ::std::default::Default for UserUi {
@@ -62,6 +64,8 @@ impl ::std::default::Default for UserUi {
             view_menu:ViewList::default(),
             table_sel:vec![false,false,false,false,false,false,false,false,false,false],
             warning_pop:false,
+            timer:false,
+            color:[0,0,0]
         }
     }
 }

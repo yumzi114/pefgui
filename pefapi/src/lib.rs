@@ -105,7 +105,7 @@ impl Encoder<Vec<RequestDataList>> for LineCodec {
                         }
                         if num==1{
                             let mut bufd = [0; 2];
-                            LittleEndian::write_u16(&mut bufd, *i);
+                            BigEndian::write_u16(&mut bufd, *i);
                             bufd.map(|x|buf.put_u8(x));
                         }
                     }
@@ -213,6 +213,7 @@ impl RequestDataList {
             //     // continue;
             // }
         }
+        
         // match self {
             
         //     RequestDataList::DEVICE_SN(data)|
@@ -234,6 +235,40 @@ impl RequestDataList {
         //         Err(())
         //     }
         // }
+    }
+    pub fn to_db_payload(&self)->Result<u8,()>{
+        match self {
+            // RequestDataList::START(data)|
+            // RequestDataList::LENGHTH(data)|
+            // RequestDataList::COMMAND(data)|
+            // RequestDataList::PULSE_ONOFF(data)|
+            // RequestDataList::HV_ONOFF(data)|
+            RequestDataList::OPEN_SENSOR_MONI(data)
+            // RequestDataList::CHECKSUM(data)|
+            // RequestDataList::END(data)
+            =>{
+                Ok(*data)
+            },
+            // RequestDataList::DEVICE_SN(data)|
+            // RequestDataList::RESERVED(data)|
+            // RequestDataList::CHANGE_VALUE(data)|
+            // RequestDataList::SET_PULSE_FREQ(data)|
+            // RequestDataList::PULSE_MONI(data)|
+            // RequestDataList::SET_VOL(data)|
+            // RequestDataList::HV_MONI(data)|
+            // RequestDataList::POWER_CONSUM_MONI(data)
+            // =>{
+            //     Ok(format!("{:?}",data))
+            //     // buf.put_u16(data);
+            // },
+            
+            _=>{
+                Err(())
+            }
+            // _=>{
+            //     // continue;
+            // }
+        }
     }
 }
 #[derive(Debug,PartialEq,Eq,Serialize,Deserialize,Defaults,Clone,Copy)]
@@ -332,9 +367,11 @@ impl RequestData {
         
         // self.set_vol=pulse_info.pwm.unwrap() as u16;
         // self.set_pulse_time[0]=pulse_info.on_time_value as u16;
-        self.set_pulse_time[0]=pulse_info.pwm.unwrap_or(0.) as u16;
-        self.set_pulse_time[1]=pulse_info.off_time_value as u16;
+        // self.set_pulse_time[0]=pulse_info.pwm.unwrap_or(0.) as u16;
+
+        // self.set_pulse_time[1]=pulse_info.off_time_value as u16;
         //voltage set
+        self.pwm_set();
         self.hv_onoff=if vol_info.power{1}else{0};
         self.set_vol=vol_info.value as u16;
     }
@@ -443,6 +480,17 @@ impl RequestData {
         else{
             let hex_str = hex_str.trim_start_matches("0x");
             self.checksum=u8::from_str_radix(hex_str,16).unwrap();
+        }
+    }
+    pub fn pwm_set(&mut self){
+        let pulse_info:PulseInfo = confy::load("pefapp", "pulse").unwrap_or_default();
+        if let Some(data)=pulse_info.pwm{
+            let feild = format!("{:.1}",data);
+            let split_feild:Vec<&str>  = feild.split(".").collect();
+            if !split_feild.is_empty(){
+                self.set_pulse_time[0]=split_feild[0].parse().unwrap();
+                self.set_pulse_time[1]=split_feild[1].parse().unwrap();
+            }
         }
     }
     pub fn is_checksum(&self)->Result<String, String>{

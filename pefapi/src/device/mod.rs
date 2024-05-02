@@ -1,18 +1,22 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
 use serde_derive::{Serialize, Deserialize};
 use super::{ChageList,RequestData};
 use crossbeam_channel::{Sender};
-#[derive(PartialEq, Serialize, Deserialize,Clone,Copy)]
+#[derive(Serialize, Deserialize,Clone)]
 pub struct AppState{
     pub set_time:u16,
     pub limit_time:u16,
+    pub job_time_bool:bool,
+    pub job_time:u64,
 }
 impl ::std::default::Default for AppState {
     fn default() -> Self { 
         Self{
             set_time: 0,
             limit_time: 0,
+            job_time:0,
+            job_time_bool:false
         }
     }
 }
@@ -50,17 +54,45 @@ impl AppState {
         }
         
     }
+    pub fn get_job_time_fmt(&self)->String{
+        let time = self.job_time.checked_div(1000);
+        match time {
+            Some(num)=>{
+                if num==0{
+                    return format!("00 : 00 : {:03}",self.job_time)    
+                }
+                let s_time = self.job_time-(num*1000);
+                if let Some(m_num)=num.checked_div(60){
+                    if m_num !=0{
+                        let s_time = self.job_time-(num*1000);
+                        let dd_time =num-(m_num*60);
+                        return format!("{:02} : {:02} : {:03}",m_num,dd_time,s_time)
+                    }
+                    else{
+                        return format!("00 : {:02} : {:03}",num,s_time)
+                    }
+                }
+                
+                return format!("00 : {:02} : {:03}",num,s_time)
+            },
+            None=>{ 
+                // format!("{}",self.set_time).as_str()
+                return format!("00 : 00 : {:03}",self.job_time)
+            }
+        }
+    }
 }
 #[derive(PartialEq, Serialize, Deserialize,Clone,Copy)]
 pub struct VolatageInfo{
     pub power:bool,
-    pub value:u16,
+    // pub value:u16,
+    pub value:f32,
 }
 impl ::std::default::Default for VolatageInfo {
     fn default() -> Self { 
         Self{
             power: false,
-            value: 0,
+            value: 0.0,
         }
     }
 }
@@ -172,7 +204,8 @@ impl PulseInfo {
             if self.freq_value!=0&&self.on_time_value!=0{
                 let m_num=max_num as f32;
                 let t_num = self.on_time_value as f32;
-                self.pwm=Some((t_num /(m_num *2.)*100.).round()as f32);
+                // self.pwm=Some((t_num /(m_num *2.)*100.).round()as f32);
+                self.pwm=Some((t_num /(m_num *2.)*100.)as f32);
                 return Ok(())
             }else{
                 return Err(());
@@ -216,7 +249,7 @@ impl VolatageInfo {
     }
     pub fn volat_on_off_set(&mut self)->Result<(),()>{
         let mut temp = self.power.clone();
-        if self.value !=0{
+        if self.value !=0.0{
             temp=true;
         }
         else{

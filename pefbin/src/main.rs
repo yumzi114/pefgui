@@ -10,7 +10,7 @@ mod app_threads;
 
 use pefapi::app_error::ErrorList;
 use component::{setup_custom_fonts, warring_window};
-use app_threads::{ui_timer,run_timer,serial_receiver,serial_sender,socket_sender,keypad_timer,mqtt_sender};
+use app_threads::{ui_timer,run_timer,serial_receiver,serial_sender,socket_sender,keypad_timer,mqtt_sender,job_timer};
 use crossbeam_channel::{unbounded,Receiver,Sender};
 use interface::{UserUi,keypad::keypad_view};
 use pefapi::{device::{PulseInfo,VolatageInfo, AppState}, LineCodec, RequestData, RequestDataList};
@@ -62,6 +62,9 @@ fn main() -> Result<(), eframe::Error> {
             let k_timer_receiver = app.k_timer_receiver.clone();
             let k_time_sender = app.k_time_sender.clone();
             keypad_timer(pad_timer,k_timer_receiver,k_time_sender);
+            let app_state = app.app_state.clone();
+            job_timer(app_state);
+            
             //시리얼 통신(송신)을 위한 스레드
             let recv: Receiver<RequestData> = app.app_receiver.clone();
             // let respone_mem= app.response.clone();
@@ -92,6 +95,8 @@ struct PEFApp {
     voltage:VolatageInfo,
     pulse_Info:PulseInfo,
     thread_time:Arc<Mutex<usize>>,
+    //타이머
+    
     //작업시간 타이머 스레드,채널
     timer:ThreadTimer,
     timer_sender:Sender<usize>,
@@ -185,7 +190,6 @@ impl PEFApp {
             err_type,
             repo_err_type,
             socket:socket_mem,
-            
         }
     }
 

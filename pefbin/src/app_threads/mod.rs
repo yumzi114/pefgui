@@ -79,6 +79,24 @@ pub fn run_timer(
         });
     });
 }
+pub fn job_timer(
+    app_state:Arc<Mutex<AppState>>,
+){
+    thread::spawn(move||{
+        let rt  = Runtime::new().unwrap();
+        rt.block_on(async {
+            loop{
+                (*app_state.lock().unwrap()).job_time=0;
+                thread::sleep(Duration::from_micros(1));
+                while (*app_state.lock().unwrap()).job_time_bool {
+                    thread::sleep(Duration::from_millis(1));
+                    (*app_state.lock().unwrap()).job_time+=1;
+                }
+            }
+        });
+    });
+
+}
 pub fn keypad_timer(
     pad_timer:ThreadTimer,
     k_timer_receiver:Receiver<u8>,
@@ -164,11 +182,8 @@ pub fn serial_receiver(
             port.set_exclusive(false)
                 .expect("Unable to set serial port exclusive to false");
             let mut reader =LineCodec.framed(port);
-            // let time = chrono::offset::Local::now().format("%Y-%m-%d").to_string();
             loop{
-                // if *sys_time_mem.lock().unwrap()!=time{
-                //     _handle.set_config(logconfig(time.clone()));
-                // }
+                
                 thread::sleep(Duration::from_millis(1));
                 //데이터 수신확인
                 if let Some(line_result)=reader.next().await {
@@ -201,13 +216,9 @@ pub fn serial_receiver(
                                             *respone_mem.lock().unwrap()=req_data;
                                         }
                                     }
-                                    // _=>{}
                                 }
                             }
                         }
-                        // Err(Error::other("Device S/N Error"))=>{
-                            
-                        // }
                         Err(error)=>{
                             match error.kind() {
                                 ErrorKind::Other=>{
@@ -215,16 +226,13 @@ pub fn serial_receiver(
                                     let dd =  RequestData::default();
                                     let clear = dd.to_list();
                                     *report_mem.lock().unwrap()=clear;
-                                    // *err_report_mem.lock().unwrap()=req_data;
                                     continue;
                                 }
-                                // Error::other("Device S/N Error")=>{},
                                 ErrorKind::NotFound=>{  
                                     *err_type.lock().unwrap()=ErrorList::StandByMode;
                                     let dd =  RequestData::default();
                                     let clear = dd.to_list();
                                     *report_mem.lock().unwrap()=clear;
-                                    // *err_report_mem.lock().unwrap()=req_data;
                                     continue;
                                 }
                                 _=>{
@@ -232,52 +240,19 @@ pub fn serial_receiver(
                                     let dd =  RequestData::default();
                                     let clear = dd.to_list();
                                     *report_mem.lock().unwrap()=clear;
-                                    // *err_report_mem.lock().unwrap()=req_data;
                                     continue;
                                 }
                             }
 
                         }
                     }
-                    // if let Ok(datalist)=line_result{
-                    //     let mut responese_data = RequestData::default();
-                    //     //데이터 파싱확인
-                    //     if let Ok(req_data)=responese_data.parser(&datalist){
-                            
-                    //         match responese_data.check_all(err_type.clone(),repo_err_type.clone()) {
-                    //             Ok(command)=>{
-                    //                 if command==0x03{
-                    //                     let dd =  RequestData::default();
-                    //                     let clear = dd.to_list();
-                    //                     *err_report_mem.lock().unwrap()=clear;
-                    //                     *report_mem.lock().unwrap()=req_data;
-                    //                 }
-                    //                 else if command==0x02{
-                    //                     *respone_mem.lock().unwrap()=req_data;
-                    //                 }
-                    //             },
-                    //             Err(command)=>{
-                    //                 if command==0x03{
-                    //                     let dd =  RequestData::default();
-                    //                     let clear = dd.to_list();
-                    //                     *report_mem.lock().unwrap()=clear;
-                    //                     *err_report_mem.lock().unwrap()=req_data;
-                    //                 }
-                    //                 else if command==0x02{
-                    //                     *respone_mem.lock().unwrap()=req_data;
-                    //                 }
-                    //             }
-                    //             // _=>{}
-                    //         }
-                    //     }
-                    // }
                 }
             }
         });
             
     });
 }
-//소켓 송신스레드
+
 pub fn socket_sender(
     socket:Arc<Mutex<Option<WebSocket<MaybeTlsStream<TcpStream>>>>>,
     app_state:Arc<Mutex<AppState>>,
@@ -288,20 +263,23 @@ pub fn socket_sender(
         let rt  = Runtime::new().unwrap();
             rt.block_on(async {
                 loop{
-                    sleep(Duration::from_millis(1));
-                    if (*app_state.lock().unwrap()).limit_time!=0{
-                        let mut name = String::new();
-                        let list =(*response.lock().unwrap()).clone();
-                        for i in list {
-                            name.push_str(format!("{}",i).as_str());
+                    let mut payload =String::new();
+                    let list = (*response.lock().unwrap()).clone();
+                    let asd =[1.2];
+                    for (num,i) in list.iter().enumerate(){
+                        if let Ok(data)=i.to_paylod(){
+                            if !payload.is_empty(){
+                                payload.push_str(",");                                    
+                            }
+                            payload.push_str(&data[..]);
                         }
-      
+                    }
                     if let Some(sender)=(*socket.lock().unwrap()).as_mut(){
-                        (*sender).send(Message::Text(name)).unwrap();
+                        (*sender).send(Message::Text(payload)).unwrap();
                     }
-                        sleep(Duration::new(5, 0));
+
+                    sleep(Duration::new(1, 0));
                         continue;
-                    }
         
                 }
                 
@@ -313,15 +291,14 @@ pub fn socket_sender(
 pub fn mqtt_sender(
     response:Arc<Mutex<Vec<RequestDataList>>>,
 ){
-    // let mem =response.clone();
     thread::spawn(move||{
         let rt  = Runtime::new().unwrap();
         rt.block_on(async {
             loop{
                 thread::sleep(Duration::from_secs(1));
-                // let client: Client = Client::with_auto_id().unwrap();
-                let client: Client = Client::with_id(SERIAL_NUMBER, false).unwrap();
+                let client: Client = Client::with_id(SERIAL_NUMBER, true).unwrap();
                 client.set_username_and_password(Some(MQTT_USER), Some(MQTT_PSW)).unwrap();
+                
                 let rc = client.connect(
                     MQTT_URL, i32::from_str_radix(MQTT_PORT, 10).unwrap(),
                                 std::time::Duration::from_secs(5), None).await;
@@ -330,8 +307,6 @@ pub fn mqtt_sender(
                     let mut payload =String::new();
                     let list = (*response.lock().unwrap()).clone();
                     let asd =[1.2];
-                    
-                    
                     for (num,i) in list.iter().enumerate(){
                         if let Ok(data)=i.to_paylod(){
                             if !payload.is_empty(){
@@ -340,20 +315,14 @@ pub fn mqtt_sender(
                             payload.push_str(&data[..]);
                         }
                     }
-                    // ddd.map(|x|if let Ok(data)=x.to_paylod(){
-                    //     payload.push_str(&data[..]);
-                    // });
-                    let result = client.publish(MQTT_TOPIT, payload.as_bytes(), QoS::AtMostOnce, false).await;
+                    let topic = format!("{}/{}",MQTT_TOPIT,list[2].to_paylod().unwrap());
+                    let result = client.publish(topic, payload.as_bytes(), QoS::AtMostOnce, false).await;
                     if let Ok(_)=result{
                         continue;
                     }else{
                         break;
                     }
                 }
-                // while rc{
-                //     thread::sleep(Duration::from_secs(3));    
-                //     client.publish("test", b"PEFBOARD", QoS::AtMostOnce, false).await.unwrap();
-                // } 
             }
         });
     });
