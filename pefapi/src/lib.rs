@@ -14,6 +14,7 @@ pub mod device;
 pub mod app_error;
 use device::{PulseInfo,VolatageInfo};
 use std::fmt;
+use std::str::FromStr;
 #[cfg(unix)]
 const DEFAULT_TTY: &str = env!("DEFAULT_TTY");
 const SERIAL_NUMBER: &str = env!("SERIAL_NUMBER");
@@ -372,8 +373,12 @@ impl RequestData {
         // self.set_pulse_time[1]=pulse_info.off_time_value as u16;
         //voltage set
         self.pwm_set();
+        self.voltage_set();
         self.hv_onoff=if vol_info.power{1}else{0};
-        self.set_vol=vol_info.value as u16;
+        // println!("HEX{:#x}",sumdata);
+        
+
+        
     }
     pub fn parser(&mut self, buf: &Vec<u8>)->Result<Vec<RequestDataList>,String>{
   
@@ -493,6 +498,22 @@ impl RequestData {
             }
         }
     }
+    pub fn voltage_set(&mut self){
+        let vol_info:VolatageInfo = confy::load("pefapp", "vol").unwrap_or_default();
+        let adad = format!("{}",vol_info.value);
+        let value : Vec<&str>= adad.split(".").collect();
+        let mut hex_value = format!("{:02x}",u16::from_str(value[0]).unwrap());
+        let temp_value = format!("{:02x}",u16::from_str(value[1]).unwrap());
+        // let temp_value = format!("{:02x}",value[1].parse::<u16>().unwrap());
+        hex_value.push_str(temp_value.clone().as_str());
+        if let Ok(data)=u16::from_str_radix(hex_value.as_str(), 16){
+            self.set_vol=data;
+        }
+        else {
+            self.set_vol=vol_info.value as u16;
+        }
+        // println!("HEX{:#x}",sumdata);
+    }
     pub fn is_checksum(&self)->Result<String, String>{
         let list = self.to_list();
         let sumdata: u128 =list_add(&list);
@@ -597,7 +618,7 @@ impl RequestData {
 
 pub fn list_add(list:&Vec<RequestDataList>)->u128{
     let mut sumdata:u128=0;
-    println!("--SUM DATA--{:?}",list);
+    // println!("--SUM DATA--{:?}",list);
         for i in list {
             match *i {
                 // RequestDataList::LENGHTH(data)|
@@ -655,9 +676,9 @@ pub fn list_add(list:&Vec<RequestDataList>)->u128{
                 }
             }
         }
-        println!("ALL SUM{}",sumdata);
-        println!("HEX{:#x}",sumdata);
-        println!("---------sumdata---");
+        // println!("ALL SUM{}",sumdata);
+        // println!("HEX{:#x}",sumdata);
+        // println!("---------sumdata---");
     sumdata
 }
 

@@ -1,4 +1,4 @@
-use std::{fmt::format, sync::{Arc,Mutex}};
+use std::{fmt::{format, Display}, sync::{Arc,Mutex}};
 
 use crossbeam_channel::Sender;
 use eframe::{egui::{Ui, self, InnerResponse, RichText, Sense, TextFormat, PointerState, Widget}, epaint::{Vec2, Color32, text::{LayoutJob, TextWrapping}, FontId, Pos2, vec2}};
@@ -125,6 +125,19 @@ pub fn setting_view(
                     ui.label(RichText::new("Timer ON/OFF").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                     ui.add(toggle(&mut uui.timer));
                     // ui.color_edit_button_srgb(&mut uui.color)
+                    ui.label(RichText::new(format!("S_{:?}, ",vol_info.value)).strong().size(40.0).color(Color32::from_rgb(38, 150, 255)));
+                    
+                    match  report.lock().unwrap()[12]{
+                        RequestDataList::HV_MONI(data)=>{
+                            ui.label(RichText::new(format!("R_{:?}",data)).strong().size(40.0).color(Color32::from_rgb(38, 150, 255)));
+                        }
+                        _=>{
+
+                        }
+                    }
+                    
+                    
+                    // ui.label(RichText::new(format!("SEND{:?}",repo.value)).strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                     //pwm 테스트시
                     // if let Some(data)=pulse_info.pwm{
                     //     let feild = format!("{:.1}",data);
