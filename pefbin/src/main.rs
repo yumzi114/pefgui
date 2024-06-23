@@ -208,9 +208,24 @@ impl eframe::App for PEFApp {
         //타임어택 -1
         if let Ok(data)=self.time_receiver.try_recv(){
             self.app_state.lock().unwrap().limit_time=data as u16;
-            if data!=0{
-                self.timer_sender.send(data).unwrap();
+            match data{
+                0=>{
+                    self.pulse_Info.power=false;
+                    self.pulse_Info.save(&mut self.request, &mut self.app_sender);
+                    self.voltage.power=false;
+                    self.voltage.save(&mut self.request, &mut self.app_sender);
+                    // if self.app_state.lock().unwrap().job_time_bool{
+                    //     let set_time = self.app_state.lock().unwrap().set_time.clone();
+                    //     self.app_state.lock().unwrap().limit_time =set_time as u16;
+                    // }
+                }
+                _=>{
+                    self.timer_sender.send(data).unwrap();
+                },
             }
+            // if data!=0{
+            //     self.timer_sender.send(data).unwrap();
+            // }
         }
         //키패드타이머
         if let Ok(num)=self.k_time_receiver.try_recv(){
@@ -239,7 +254,8 @@ impl eframe::App for PEFApp {
                 &self.err_report,
                 &self.repo_err_type,
                 &mut self.app_state,
-                &mut self.timer_sender,
+                // &mut self.timer_sender,
+                &mut self.time_sender,
                 &mut self.k_timer_sender,
             );
             self.mainui.bottom_view(ui, ctx,&self.thread_time,&self.err_type,&mut self.app_state);

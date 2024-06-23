@@ -87,7 +87,7 @@ pub fn job_timer(
         rt.block_on(async {
             loop{
                 (*app_state.lock().unwrap()).job_time=0;
-                thread::sleep(Duration::from_micros(1));
+                // thread::sleep(Duration::from_micros(1));
                 while (*app_state.lock().unwrap()).job_time_bool {
                     thread::sleep(Duration::from_millis(1));
                     (*app_state.lock().unwrap()).job_time+=1;

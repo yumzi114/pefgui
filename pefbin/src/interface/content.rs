@@ -17,7 +17,7 @@ pub fn setting_view(
     response:&Arc<Mutex<Vec<RequestDataList>>>,
     report:&Arc<Mutex<Vec<RequestDataList>>>,
     app_state:&mut Arc<Mutex<AppState>>,
-    timer_sender:&mut Sender<usize>,
+    time_sender:&mut Sender<usize>,
     k_timer_sender:&mut Sender<u8>,
 
 )->InnerResponse<()>{
@@ -124,35 +124,7 @@ pub fn setting_view(
                     ui.add_space(20.);
                     ui.label(RichText::new("Timer ON/OFF").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
                     ui.add(toggle(&mut uui.timer));
-                    // ui.color_edit_button_srgb(&mut uui.color)
-                    ui.label(RichText::new(format!("S_{:?}, ",vol_info.value)).strong().size(40.0).color(Color32::from_rgb(38, 150, 255)));
-                    
-                    match  report.lock().unwrap()[12]{
-                        RequestDataList::HV_MONI(data)=>{
-                            ui.label(RichText::new(format!("R_{:?}",data)).strong().size(40.0).color(Color32::from_rgb(38, 150, 255)));
-                        }
-                        _=>{
-
-                        }
-                    }
-                    
-                    
-                    // ui.label(RichText::new(format!("SEND{:?}",repo.value)).strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
-                    //pwm 테스트시
-                    // if let Some(data)=pulse_info.pwm{
-                    //     let feild = format!("{:.1}",data);
-                    //     let temp11:Vec<&str>  = feild.split(".").collect();
-                    //     if !temp11.is_empty(){
-                            
-                    //         ui.label(RichText::new(format!("{:?}",temp11[0])).strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
-                    //         ui.label(RichText::new(format!("{:?}",temp11[1])).strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));    
-                    //     }
-                    //     // ui.label(RichText::new(feild).strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
-                    //     // ui.label(RichText::new(feild).strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
-                    // }
-                    // else{
-                    //     ui.label(RichText::new("NO DATA").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
-                    // }
+ 
                 });
                 
                 
@@ -190,11 +162,19 @@ pub fn setting_view(
                                     if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(pulse_info.power))).clicked(){
                                         pulse_info.power=!pulse_info.power;
                                         pulse_info.save(request,sender);
+                                        let num = (*app_state.lock().unwrap()).set_time.clone();
+                                        if vol_info.power&&pulse_info.power&&num!=0{
+                                            // (*app_state.lock().unwrap()).limit_time=num;
+                                            app_state.lock().unwrap().limit_time=num;
+                                            time_sender.send(num as usize).unwrap();
+                                        }
                                         if vol_info.power&&pulse_info.power&&uui.timer{
                                             (*app_state.lock().unwrap()).job_time_bool=true;
                                             // (*app_state.lock().unwrap()).job_time=0;
                                         }else {
                                             (*app_state.lock().unwrap()).job_time_bool=false;
+                                            app_state.lock().unwrap().limit_time=0;
+                                            // time_sender.send(0).unwrap();
                                             // (*app_state.lock().unwrap()).job_time=0;
                                         }
                                     };
@@ -220,11 +200,20 @@ pub fn setting_view(
                                     if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(vol_info.power))).clicked(){
                                         vol_info.power=!vol_info.power;
                                         vol_info.save(request,sender);
+                                        let num = (*app_state.lock().unwrap()).set_time.clone();
+                                        if vol_info.power&&pulse_info.power&&num!=0{
+                                            app_state.lock().unwrap().limit_time=num;
+                                            time_sender.send(num as usize).unwrap();
+                                            // (*app_state.lock().unwrap()).limit_time=num;
+                                        }
                                         if vol_info.power&&pulse_info.power&&uui.timer{
                                             (*app_state.lock().unwrap()).job_time_bool=true;
                                             // (*app_state.lock().unwrap()).job_time=0;
                                         }else {
                                             (*app_state.lock().unwrap()).job_time_bool=false;
+                                            app_state.lock().unwrap().limit_time=0;
+                                            // time_sender.send(0).unwrap();
+                                            
                                             // (*app_state.lock().unwrap()).job_time=0;
                                         }
                                     };
@@ -332,7 +321,7 @@ pub fn setting_view(
                         sender,
                         app_state,
                         &mut uui.warning_pop,
-                        timer_sender,
+                        time_sender,
                         k_timer_sender
                     );
                 }
@@ -416,56 +405,25 @@ fn job_textwarp(ui:&mut egui::Ui,color: Color32,size:f32,text:&str,hover:bool)->
 }
 
 pub fn toggle_ui(ui: &mut egui::Ui, on: &mut bool) -> egui::Response {
-    // Widget code can be broken up in four steps:
-    //  1. Decide a size for the widget
-    //  2. Allocate space for it
-    //  3. Handle interactions with the widget (if any)
-    //  4. Paint the widget
-
-    // 1. Deciding widget size:
-    // You can query the `ui` how much space is available,
-    // but in this example we have a fixed size widget based on the height of a standard button:
     let desired_size = ui.spacing().interact_size.y * egui::vec2(5.0, 2.5);
-
-    // 2. Allocating space:
-    // This is where we get a region of the screen assigned.
-    // We also tell the Ui to sense clicks in the allocated region.
     let (rect, mut response) = ui.allocate_exact_size(desired_size, egui::Sense::click());
-
-    // 3. Interact: Time to check for clicks!
     if response.clicked() {
         *on = !*on;
         response.mark_changed(); // report back that the value changed
     }
-
-    // Attach some meta-data to the response which can be used by screen readers:
     response.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Checkbox, *on, ""));
-
-    // 4. Paint!
-    // Make sure we need to paint:
     if ui.is_rect_visible(rect) {
-        // Let's ask for a simple animation from egui.
-        // egui keeps track of changes in the boolean associated with the id and
-        // returns an animated value in the 0-1 range for how much "on" we are.
         let how_on = ui.ctx().animate_bool(response.id, *on);
-        // We will follow the current style by asking
-        // "how should something that is being interacted with be painted?".
-        // This will, for instance, give us different colors when the widget is hovered or clicked.
         let visuals = ui.style().interact_selectable(&response, *on);
-        // All coordinates are in absolute screen coordinates so we use `rect` to place the elements.
         let rect = rect.expand(visuals.expansion);
         let radius = 0.5 * rect.height();
         ui.painter()
             .rect(rect, radius, visuals.bg_fill, visuals.bg_stroke);
-        // Paint the circle, animating it from left to right with `how_on`:
         let circle_x = egui::lerp((rect.left() + radius)..=(rect.right() - radius), how_on);
         let center = egui::pos2(circle_x, rect.center().y);
         ui.painter()
             .circle(center, 0.75 * radius, visuals.bg_fill, visuals.fg_stroke);
     }
-
-    // All done! Return the interaction response so the user can check what happened
-    // (hovered, clicked, ...) and maybe show a tooltip:
     response
 }
 

@@ -23,9 +23,6 @@ pub fn setup_custom_fonts(ctx: &egui::Context) {
         .push("my_font".to_owned());
     ctx.set_fonts(fonts);
 }
-
-// pub fn warring_window(center_rect:Pos2, ctx: &egui::Context, open:&mut bool, user_ui:&mut UserUi){
-// }
 pub fn warring_window(center_rect:Pos2,ctx:&egui::Context, user_ui:&mut UserUi){
     let mut is_open=user_ui.warning_pop.clone();
     let newwindow = egui::Window::new("warring");

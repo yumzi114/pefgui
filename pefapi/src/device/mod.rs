@@ -32,7 +32,6 @@ impl AppState {
                 return format!("{}H {}M",num,m_time)
             },
             None=>{ 
-                // format!("{}",self.set_time).as_str()
                 return format!("{}",self.set_time)
             }
         }
@@ -48,7 +47,6 @@ impl AppState {
                     return format!("{}H {}M",num,m_time)
             },
             None=>{ 
-                // format!("{}",self.set_time).as_str()
                 return format!("{}",self.limit_time)
             }
         }
@@ -76,7 +74,6 @@ impl AppState {
                 return format!("00 : {:02} : {:03}",num,s_time)
             },
             None=>{ 
-                // format!("{}",self.set_time).as_str()
                 return format!("00 : 00 : {:03}",self.job_time)
             }
         }
@@ -85,7 +82,6 @@ impl AppState {
 #[derive(PartialEq, Serialize, Deserialize,Clone,Copy)]
 pub struct VolatageInfo{
     pub power:bool,
-    // pub value:u16,
     pub value:f32,
 }
 impl ::std::default::Default for VolatageInfo {
@@ -128,18 +124,10 @@ impl PulseInfo {
             if self.power!=file_PulseInfo.power{Some(ChageList::Pulse_ON_OFF)}
             else if self.freq_value!=file_PulseInfo.freq_value {Some(ChageList::PulseFreq)}
             else if self.on_time_value!=file_PulseInfo.on_time_value{Some(ChageList::Pulse_ON_OFF_Time)}
-            // else if self.off_time_value!=file_PulseInfo.off_time_value{Some(ChageList::Pulse_ON_OFF_Time)}
             else {None};
             match value {
                 Some(value)=>{
-                //온오프 자동설정시
-                // if let Ok(_)=self.pulse_on_off_set(){
-                //     req_data.into_change_value(ChageList::Pulse_ON_OFF);
-                // }
-             
                 let save_sender = sender.clone();
-                //pwd
-                
                 if let Ok(_)=self.change_pwm(){
                     req_data.into_change_value(value);
                     let req=req_data.clone();
@@ -204,7 +192,6 @@ impl PulseInfo {
             if self.freq_value!=0&&self.on_time_value!=0{
                 let m_num=max_num as f32;
                 let t_num = self.on_time_value as f32;
-                // self.pwm=Some((t_num /(m_num *2.)*100.).round()as f32);
                 self.pwm=Some((t_num /(m_num *2.)*100.)as f32);
                 return Ok(())
             }else{
@@ -227,14 +214,9 @@ impl VolatageInfo {
             else {None};
             match value {
                 Some(value)=>{
-                    //온오프 자동설정시
-                    // if let Ok(_)=self.volat_on_off_set(){
-                    //     req_data.into_change_value(ChageList::HighVol_ON_OFF);    
-                    // }
                     confy::store("pefapp", "vol", self).unwrap();
                     req_data.into_change_value(value);
                     let data = req_data.clone();
-                    // *socket_req.lock().unwrap()=data.clone();
                     let save_sender = sender.clone();
                     save_sender.send(data).unwrap();
                     req_data.change_value=0b0000_0000_0000_0000;

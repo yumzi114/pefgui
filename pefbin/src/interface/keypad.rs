@@ -22,7 +22,7 @@ pub fn keypad_view(
     sender:&mut Sender<RequestData>,
     app_state:&mut Arc<Mutex<AppState>>,
     warring_open:&mut bool,
-    timer_sender:&mut Sender<usize>,
+    time_sender:&mut Sender<usize>,
     k_timer_sender:&mut Sender<u8>,
 )->InnerResponse<()>{
     let title = match selmenu {
@@ -174,10 +174,18 @@ pub fn keypad_view(
                                 }else {
                                     let num = format!("{}", setvalue.parse::<u16>().unwrap_or(0));
                                     let mut temp = (*app_state.lock().unwrap()).clone();
-                                    temp.set_time=num.parse::<u16>().unwrap_or(0);
-                                    temp.limit_time=num.parse::<u16>().unwrap_or(0);
-                                    timer_sender.send(temp.set_time as usize).unwrap();
-                                    *app_state.lock().unwrap()=temp;
+                                    // temp.set_time=num.parse::<u16>().unwrap_or(0);
+                                    // temp.limit_time=num.parse::<u16>().unwrap_or(0);
+                                    let number = num.parse::<u16>().unwrap_or(0);
+                                    (*app_state.lock().unwrap()).set_time=number;
+                                    // (*app_state.lock().unwrap()).limit_time=num.parse::<u16>().unwrap_or(0);
+                                    (*app_state.lock().unwrap()).limit_time=0;
+                                    if volat.power&&pulse.power{
+                                        time_sender.send(number as usize).unwrap();
+                                        (*app_state.lock().unwrap()).limit_time=number;
+                                    }
+                                    // time_sender.send(temp.set_time as usize).unwrap();
+                                    // *app_state.lock().unwrap()=temp;
                                     *status_str=format!("Set Done Value : {} ", num.to_string());
                                     setvalue.clear();
                                 }

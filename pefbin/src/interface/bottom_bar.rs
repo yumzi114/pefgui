@@ -79,8 +79,6 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                         ui.add_space(10.);
                         
                     });
-                    
-                // });
             });
         });
         ui.horizontal_wrapped(|ui|{
@@ -93,12 +91,4 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                 .paint_at(ui, temp_rect);
         });
     })
-}
-
-fn circle_ui (ui:&mut Ui,color:Color32,size:Vec2){
-    let (response, painter) = ui.allocate_painter(size, Sense::hover());
-    let rect = response.rect;
-    let c = rect.center();
-    let r = rect.width() / 2.0 - 1.0;
-    painter.circle_filled(c, r, color);
 }
