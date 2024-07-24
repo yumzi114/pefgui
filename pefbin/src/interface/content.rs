@@ -47,7 +47,7 @@ pub fn setting_view(
                         });
                         
                         let value = format!("Device : {}",report.lock().unwrap()[12]);
-                        job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,value.as_str(),true);
+                        job_textwarp(ui,Color32::from_rgb(184, 184, 184),40.0,value.as_str(),true);
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("Pulse Frequency").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
@@ -62,7 +62,7 @@ pub fn setting_view(
                             }
                         });
                         let value = format!("Device : {}",report.lock().unwrap()[9]);
-                        job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,value.as_str(),true);
+                        job_textwarp(ui,Color32::from_rgb(184, 184, 184),40.0,value.as_str(),true);
                     });
                 });
                 ui.add_space(30.);
@@ -94,7 +94,7 @@ pub fn setting_view(
                             
                         });
                         let value = format!("Device : {}",report.lock().unwrap()[8]);
-                        job_textwarp(ui,Color32::from_rgb(184, 184, 184),50.0,value.as_str(),true);
+                        job_textwarp(ui,Color32::from_rgb(184, 184, 184),40.0,value.as_str(),true);
                     });
                     columns[1].vertical_centered_justified(|ui|{
                         ui.label(RichText::new("Running Time").strong().size(45.0).color(Color32::from_rgb(38, 150, 255)));
@@ -228,7 +228,48 @@ pub fn setting_view(
                             });
                         })
                     });
-                    
+                    ui.push_id(2, |ui| {
+                        TableBuilder::new(ui)
+
+                        .cell_layout(egui::Layout::top_down(egui::Align::Center))
+                        .striped(false)
+                        .column(Column::remainder())
+                        .column(Column::remainder())
+                        .header(60.0, |mut header| {
+                            header.col(|ui| {
+                                ui.add_space(10.0);
+                                ui.label(RichText::new("Button1").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                                
+                            });
+                            header.col(|ui| {
+                                ui.add_space(10.0);
+                                ui.label(RichText::new("Button2").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
+                            });
+                        })
+                        .body(|mut body| {
+                            body.row(140.0, |mut row| {
+                                row.col(|ui| {
+                                    ui.add_space(10.0);
+                                    // let b_response = button_respone(ui, uui, &MenuList::SetVoltage, format!("{} kV",vol_info.value.to_string()));
+                                    //버튼식
+                                    if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(false))).clicked(){
+                                        // pulse_info.power=!pulse_info.power;
+                                        // pulse_info.save(request,sender);
+                                        // let num = (*app_state.lock().unwrap()).set_time.clone();
+                                        
+                                    };
+                             
+                                });
+                                row.col(|ui| {
+                                    ui.add_space(10.0);
+                                    //버튼식
+                                    if ui.add_sized([120.0, 120.0], egui::ImageButton::new(check_on(false))).clicked(){
+                                        
+                                    };
+                                });
+                            });
+                        })
+                    });
                     
                     ui.add_space(15.);
                     // let (rect, _response) =ui.allocate_at_least(Vec2::new(450., 80.), Sense::click_and_drag());
@@ -240,53 +281,53 @@ pub fn setting_view(
                         .column(Column::remainder())
                         .column(Column::remainder())
                         .header(70.0, |mut header| {
-                            header.col(|ui| {
-                                ui.add_space(10.);
+                            // header.col(|ui| {
+                            //     ui.add_space(10.);
                                 
-                                ui.label(RichText::new("Voltage").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
-                            });
-                            header.col(|ui| {
-                                ui.add_space(10.);
-                                ui.label(RichText::new(format!("{}",report.lock().unwrap()[12])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
-                            });
+                            //     ui.label(RichText::new("Voltage").strong().size(35.0).color(Color32::from_rgb(247, 104, 42)));
+                            // });
+                            // header.col(|ui| {
+                            //     ui.add_space(10.);
+                            //     ui.label(RichText::new(format!("{}",report.lock().unwrap()[12])).strong().size(35.0).color(Color32::from_rgb(247, 104, 42)));
+                            // });
                         })
                         .body(|mut body| {
-                            body.row(70.0, |mut row| {
-                                row.col(|ui| {
-                                    ui.add_space(10.);
-                                    ui.label(RichText::new("Pulse").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
-                                });
-                                row.col(|ui| {
-                                    ui.add_space(10.);
-                                    ui.label(RichText::new(format!("{}",report.lock().unwrap()[9])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
-                                });
-                            });
-                            body.row(70.0, |mut row| {
-                                row.col(|ui| {
-                                    ui.label(RichText::new("Power\nConsumption").strong().size(30.0).color(Color32::from_rgb(247, 104, 42)));
-                                });
-                                row.col(|ui| {
-                                    ui.add_space(10.);
-                                    ui.label(RichText::new(format!("{}",report.lock().unwrap()[14])).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
-                                });
-                            });
-                            body.row(70.0, |mut row| {
-                                row.col(|ui| {
-                                    ui.label(RichText::new("Device\nLimit Time").strong().size(30.0).color(Color32::from_rgb(247, 104, 42)));
-                                });
-                                row.col(|ui| {
-                                    ui.add_space(10.);
+                            // body.row(70.0, |mut row| {
+                            //     row.col(|ui| {
+                            //         ui.add_space(10.);
+                            //         ui.label(RichText::new("Pulse").strong().size(35.0).color(Color32::from_rgb(247, 104, 42)));
+                            //     });
+                            //     row.col(|ui| {
+                            //         ui.add_space(10.);
+                            //         ui.label(RichText::new(format!("{}",report.lock().unwrap()[9])).strong().size(35.0).color(Color32::from_rgb(247, 104, 42)));
+                            //     });
+                            // });
+                            // body.row(70.0, |mut row| {
+                            //     row.col(|ui| {
+                            //         ui.label(RichText::new("Power\nConsumption").strong().size(20.0).color(Color32::from_rgb(247, 104, 42)));
+                            //     });
+                            //     row.col(|ui| {
+                            //         ui.add_space(10.);
+                            //         ui.label(RichText::new(format!("{}",report.lock().unwrap()[14])).strong().size(35.0).color(Color32::from_rgb(247, 104, 42)));
+                            //     });
+                            // });
+                            // body.row(70.0, |mut row| {
+                            //     row.col(|ui| {
+                            //         ui.label(RichText::new("Device\nLimit Time").strong().size(20.0).color(Color32::from_rgb(247, 104, 42)));
+                            //     });
+                            //     row.col(|ui| {
+                            //         ui.add_space(10.);
                                     
-                                    if (*app_state.lock().unwrap()).limit_time>0{
-                                        ui.label(RichText::new(
-                                            (*app_state.lock().unwrap()).get_limit_time_fmt()
-                                        ).strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
-                                    }
-                                    else {
-                                        ui.label(RichText::new("None").strong().size(45.0).color(Color32::from_rgb(247, 104, 42)));
-                                    }
-                                });
-                            });
+                            //         if (*app_state.lock().unwrap()).limit_time>0{
+                            //             ui.label(RichText::new(
+                            //                 (*app_state.lock().unwrap()).get_limit_time_fmt()
+                            //             ).strong().size(35.0).color(Color32::from_rgb(247, 104, 42)));
+                            //         }
+                            //         else {
+                            //             ui.label(RichText::new("None").strong().size(35.0).color(Color32::from_rgb(247, 104, 42)));
+                            //         }
+                            //     });
+                            // });
                             if uui.timer{
                                 body.row(70.0, |mut row| {
                                     row.col(|ui| {
@@ -347,7 +388,7 @@ fn click_voltage(uui:&mut UserUi, selmenu:MenuList, get_pos:Pos2,k_timer_sender:
 
 //버튼 클릭색상처리
 fn button_respone(ui: &mut Ui, uui:&UserUi, check_sel:&MenuList,value_str:String)->egui::Response{
-    let size = if value_str.len()>=7{65_f32}else{90_f32};
+    let size = if value_str.len()>=7{45_f32}else{70_f32};
     let b_response: egui::Response = 
     if uui.keypad.sellist==Some(*check_sel){
    
@@ -355,7 +396,7 @@ fn button_respone(ui: &mut Ui, uui:&UserUi, check_sel:&MenuList,value_str:String
             // job
             RichText::new(value_str).strong().size(size)
         )
-            .min_size(Vec2{x:420.0,y:130.0})
+            .min_size(Vec2{x:420.0,y:110.0})
             .sense(Sense::click())
             .fill(Color32::from_rgb(133, 255, 115))
             .rounding(egui::Rounding{nw:40.,ne:40.,sw:40.,se:40.,})
@@ -367,7 +408,7 @@ fn button_respone(ui: &mut Ui, uui:&UserUi, check_sel:&MenuList,value_str:String
             // job
             RichText::new(value_str).strong().size(size)
         )
-            .min_size(Vec2{x:420.0,y:130.0})
+            .min_size(Vec2{x:420.0,y:110.0})
             .rounding(egui::Rounding{nw:40.,ne:40.,sw:40.,se:40.,})
             .sense(Sense::click())
         )
