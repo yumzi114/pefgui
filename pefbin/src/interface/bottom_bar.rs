@@ -81,14 +81,14 @@ pub fn bottom_view(ui: &mut Ui,ctx: &egui::Context,mem:&Arc<Mutex<usize>>, uui:&
                     });
             });
         });
-        ui.horizontal_wrapped(|ui|{
-            ui.add_space(86.0);
-            ui.label(RichText::new("").strong().size(60.0));
-            ui.add_space(450.0);
-            ui.add_space(810.0);
-            let (temp_rect, _) =ui.allocate_at_least(Vec2::new(450., 70.), Sense::hover());
-            egui::Image::new(egui::include_image!("../../files/gitclogo1.png"))
-                .paint_at(ui, temp_rect);
-        });
+        // ui.horizontal_wrapped(|ui|{
+        //     ui.add_space(86.0);
+        //     ui.label(RichText::new("").strong().size(60.0));
+        //     ui.add_space(450.0);
+        //     ui.add_space(810.0);
+        //     let (temp_rect, _) =ui.allocate_at_least(Vec2::new(450., 70.), Sense::hover());
+        //     egui::Image::new(egui::include_image!("../../files/gitclogo1.png"))
+        //         .paint_at(ui, temp_rect);
+        // });
     })
 }
